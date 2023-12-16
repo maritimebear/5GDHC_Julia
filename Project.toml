@@ -1,0 +1,7 @@
+name = "DHG"
+uuid = "1f4d3562-0422-4c53-8d5d-7a1ac321cea5"
+authors = ["John Mampilli <jsmampilli@gmail.com>"]
+version = "0.1.0"
+
+[deps]
+NetworkDynamics = "22e9dc34-2a0d-11e9-0de0-8588d035468b"
