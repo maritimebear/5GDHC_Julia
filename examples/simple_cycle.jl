@@ -10,6 +10,7 @@ params = (density = 1e3,
           diameter = 1.0,
           p_ref = 101325.0,
           delta_p = 1.0,
+          massflow = 1.0,
           friction_fn = (Re) -> (-1.0))
 
 function pipe_edge!(de, e, v_s, v_d, p, _)
@@ -19,7 +20,7 @@ function pipe_edge!(de, e, v_s, v_d, p, _)
     Re= p.density * velocity * p.diameter / p.dyn_visc
 
     # @show Re
-    @show velocity
+    # @show velocity
 
     de[1] = p.density * area * ( (v_s[1] - v_d[1]) + (p.friction_fn(Re) * velocity * abs(velocity)) ) # Pressure drop due to friction
     # de[2] = e[2] + e[1]
@@ -29,6 +30,7 @@ end
 
 function prosumer_edge!(de, e, v_s, v_d, p, _)
     de[1] = p.delta_p - (v_d[1] - v_s[1]) # Fixed pressure difference
+    # de[1] = p.massflow - e[1] # Fixed mass flow rate
     # de[2] = e[2] + e[1]
     return nothing
 end
