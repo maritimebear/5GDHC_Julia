@@ -28,8 +28,8 @@ function pipe_edge!(de, e, v_s, v_d, p, _)
 end
 
 function prosumer_edge!(de, e, v_s, v_d, p, _)
-    de[1] = p.delta_p - (v_d[1] - v_s[1]) # Fixed pressure difference
-    # de[1] = p.massflow - e[1] # Fixed mass flow rate -- not working with DynamicSS(Rodas5())
+    # de[1] = p.delta_p - (v_d[1] - v_s[1]) # Fixed pressure difference
+    de[1] = p.massflow - e[1] # Fixed mass flow rate
 
     return nothing
 end
@@ -59,7 +59,7 @@ nodes::Vector{nd.DirectedODEVertex} = [nd.DirectedODEVertex(f=junction_node!, di
 pushfirst!(nodes, nd.DirectedODEVertex(f=fixed_pressure_node!, dim=1, mass_matrix=zeros(1,1),
                                       sym=[:p]))
 
-edges::Vector{nd.ODEEdge} = [nd.ODEEdge(f=pipe_edge!, dim=1, coupling=:directed, sym=[:m])
+edges::Vector{nd.ODEEdge} = [nd.ODEEdge(f=pipe_edge!, dim=1, coupling=:directed, mass_matrix=zeros(1,1), sym=[:m])
                              for _ in 1:3]
 pushfirst!(edges, nd.ODEEdge(f=prosumer_edge!, dim=1, coupling=:directed,
                              mass_matrix=zeros(1,1), sym=[:m]))
