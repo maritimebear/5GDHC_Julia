@@ -23,15 +23,14 @@ function pipe_edge!(de, e, v_s, v_d, p, _)
     # @show velocity
 
     de[1] = p.density * area * ( (v_s[1] - v_d[1]) + (p.friction_fn(Re) * velocity * abs(velocity)) ) # Pressure drop due to friction
-    # de[2] = e[2] + e[1]
 
     return nothing
 end
 
 function prosumer_edge!(de, e, v_s, v_d, p, _)
     de[1] = p.delta_p - (v_d[1] - v_s[1]) # Fixed pressure difference
-    # de[1] = p.massflow - e[1] # Fixed mass flow rate
-    # de[2] = e[2] + e[1]
+    # de[1] = p.massflow - e[1] # Fixed mass flow rate -- not working with DynamicSS(Rodas5())
+
     return nothing
 end
 
@@ -39,7 +38,6 @@ function junction_node!(dv, _, edges_in, edges_out, _, _)
     # DirectedODEVertex
     # dv[1] = 0.0
     dv[1] = sum(map(e -> e[1], edges_in)) - sum(map(e -> e[1], edges_out)) # Mass conservation
-    # dv[1] = sum(map(e -> e[1], edges_in)) - sum(map(e -> e[1], edges_out)) # Mass conservation
     return nothing
 end
 
@@ -75,4 +73,4 @@ init_prob = de.SteadyStateProblem(nd_fn, initial_guess, params)
 init_sol = de.solve(init_prob, de.DynamicSS(de.Rodas5()))
 
 
-display(fig_graph)
+# display(fig_graph)
