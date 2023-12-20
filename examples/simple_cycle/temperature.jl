@@ -29,7 +29,7 @@ params = (density = density,
           diameter = diameters[1],
           massflow = massflows[1],
           dx = dx[1],
-          delta_T = 5.0,
+          delta_T = 0.0,
           T_fixed = 273.15 + 25.0,
           htrans_coeff = htrans_coeff,
          )
