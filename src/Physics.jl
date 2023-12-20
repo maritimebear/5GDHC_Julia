@@ -65,7 +65,7 @@ function reference_node!(dv, v, _, _, p, _)
     # DirectedODEVertex, dims == 2
     # dv[1:2] = 0.0
     dv[1] = v[1] - p.p_ref
-    dv[2] = v[2] - p.T_ref
+    dv[2] = v[2] - p.T_fixed
     return nothing
 end
 
