@@ -6,6 +6,9 @@ import GLMakie, GraphMakie
 
 include("../../src/InterpolationSchemes.jl") # provides module FVM
 
+include("../../src/DHG.jl")
+import .DHG
+
 # Graph
 g = gr.cycle_digraph(4)
 fig_graph = GraphMakie.graphplot(g; ilabels=repr.(1:gr.nv(g)), elabels=repr.(1:gr.ne(g)))
@@ -118,18 +121,15 @@ function fixed_node!(dv, v, _, _, p, _)
     return nothing
 end
 
+edges::Vector{nd.ODEEdge} = [DHG.pipe_edge(pipelengths[1], dx[1]) for _ in 1:3]
+pushfirst!(edges, DHG.prosumer_edge())
 
 
 nodes::Vector{nd.DirectedODEVertex} = [nd.DirectedODEVertex(f=junction_node!, dim=1,
-                                                          mass_matrix=zeros(1,1), sym=[:p])
+                                                          mass_matrix=zeros(1,1), sym=[:T])
                                       for _ in 1:3]
 pushfirst!(nodes, nd.DirectedODEVertex(f=fixed_pressure_node!, dim=1, mass_matrix=zeros(1,1),
-                                      sym=[:p]))
-
-edges::Vector{nd.ODEEdge} = [nd.ODEEdge(f=pipe_edge!, dim=1, coupling=:directed, mass_matrix=zeros(1,1), sym=[:m])
-                             for _ in 1:3]
-pushfirst!(edges, nd.ODEEdge(f=prosumer_edge!, dim=1, coupling=:directed,
-                             mass_matrix=zeros(1,1), sym=[:m]))
+                                      sym=[:T]))
 
 nd_fn = nd.network_dynamics(nodes, edges, g)
 
