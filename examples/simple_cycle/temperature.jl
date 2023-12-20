@@ -4,8 +4,6 @@ import LinearAlgebra as la
 import DifferentialEquations as de
 import GLMakie, GraphMakie
 
-# Only temperature transport, no hydrodynamics
-
 include("../../src/InterpolationSchemes.jl") # provides module FVM
 
 # Graph
