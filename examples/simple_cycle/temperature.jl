@@ -14,6 +14,7 @@ fig_graph = GraphMakie.graphplot(g; ilabels=repr.(1:gr.nv(g)), elabels=repr.(1:g
 # Using material properties of water
 density = 1e3 # kg/m^3
 heat_capacity = 4184.0, # J/kg-K, used only in heat transfer coefficient calculation
+dyn_visc = 8.9e-4 # Pa-s
 
 # Parameters for each edge
 diameters = [1.0 for _ in 1:gr.ne(g)]
@@ -23,14 +24,19 @@ n_cells = [10 for _ in 1:gr.ne(g)] # number of cells in each edge
 dx = pipelengths ./ n_cells # cell widths of each edge, not cell-centre locations
 
 htrans_coeff = () -> (-1.0)
+friction_fn = (Re) -> (-1.0)
 
 # Named tuple to be passed to dynamical functions
 params = (density = density,
+          dyn_visc = dyn_visc,
           diameter = diameters[1],
           massflow = massflows[1],
           dx = dx[1],
+          delta_p = 1.0,
           delta_T = 0.0,
+          p_ref = 101325.0,
           T_fixed = 273.15 + 25.0,
+          friction_fn = friction_fn,
           htrans_coeff = htrans_coeff,
          )
 
