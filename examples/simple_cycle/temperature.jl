@@ -15,7 +15,7 @@ fig_graph = GraphMakie.graphplot(g; ilabels=repr.(1:gr.nv(g)), elabels=repr.(1:g
 # Parameters
 # Using material properties of water
 density = 1e3 # kg/m^3
-heat_capacity = 4184.0, # J/kg-K
+heat_capacity = 4184.0, # J/kg-K, used only in heat transfer coefficient calculation
 
 # Parameters for each edge
 diameters = [1.0 for _ in 1:gr.ne(g)]
@@ -24,16 +24,16 @@ pipelengths = [1.0 for _ in 1:gr.ne(g)]
 n_cells = [10 for _ in 1:gr.ne(g)] # number of cells in each edge
 dx = pipelengths ./ n_cells # cell widths of each edge, not cell-centre locations
 
-htrans_coeff = (_) -> (-1.0)
+htrans_coeff = () -> (-1.0)
 
 # Named tuple to be passed to dynamical functions
 params = (density = density,
-          heat_capacity = heat_capacity,
           diameter = diameters[1],
           massflow = massflows[1],
           dx = dx[1],
           delta_T = 5.0,
           T_fixed = 273.15 + 25.0,
+          htrans_coeff = htrans_coeff,
          )
 
 
@@ -65,7 +65,7 @@ function pipe_edge!(de, e, v_s, v_d, p, _)
 end
 
 function prosumer_edge!(de, e, v_s, v_d, p, _)
-    # Prosumer edges must always have dim == 1
+    # Prosumer edges must always have n_cells == 1
     # de[1] == 0, algebraic constraint
 
     de[1] = p.delta_T - e[1] # Fixed temperature change across edge
