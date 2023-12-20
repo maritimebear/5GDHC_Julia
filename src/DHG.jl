@@ -17,11 +17,11 @@ function pipe_edge(length::Real, dx::Real) :: nd.ODEEdge
     # states 2:end => temperature in finite-volume cells
     # dims == num(states) = 1 + num(cells)
 
-    n_cells = length / dx # finite-volume cells
+    n_cells = div(length, dx) # number of finite-volume cells, integer division
     @assert (n_cells > 0 && n_cells != Inf)
 
     # Calculate arguments to NetworkDynamics.ODEEdge
-    dims = n_cells + 1
+    dims::Int = n_cells + 1
     diagonal = la.Diagonal([1 for _ in 1:dims]) # Diagonal of mass matrix
     diagonal[1] = 0 # state 1 corresponds to an algebraic constraint
     symbols = [Symbol("T$i") for i in 0 : n_cells]
