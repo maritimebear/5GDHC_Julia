@@ -124,12 +124,8 @@ end
 edges::Vector{nd.ODEEdge} = [DHG.pipe_edge(pipelengths[1], dx[1]) for _ in 1:3]
 pushfirst!(edges, DHG.prosumer_edge())
 
-
-nodes::Vector{nd.DirectedODEVertex} = [nd.DirectedODEVertex(f=junction_node!, dim=1,
-                                                          mass_matrix=zeros(1,1), sym=[:T])
-                                      for _ in 1:3]
-pushfirst!(nodes, nd.DirectedODEVertex(f=fixed_pressure_node!, dim=1, mass_matrix=zeros(1,1),
-                                      sym=[:T]))
+nodes::Vector{nd.DirectedODEVertex} = [DHG.junction_node() for _ in 1:3]
+pushfirst!(nodes, DHG.fixed_node())
 
 nd_fn = nd.network_dynamics(nodes, edges, g)
 
