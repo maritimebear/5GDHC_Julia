@@ -2,12 +2,10 @@ module FVM
 
 export upwind
 
-function upwind(phi, phi_W, phi_E, u)
+function upwind(phi::AbstractVector{T}, phi_W, phi_E, u) where T
     # Calculates closed_surface_integral( (u*phi) . dS )
     # Expects phi::Vector, where each element contains the value of phi in a finite-volume cell
     # Returns vector of results for each cell
-    @assert (typeof(phi) <: AbstractVector)
-    @assert length(phi) > 1
 
     neighbour = similar(phi)
     if u > 0
