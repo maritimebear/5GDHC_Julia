@@ -15,7 +15,7 @@ fig_graph = GraphMakie.graphplot(g; ilabels=repr.(1:gr.nv(g)), elabels=repr.(1:g
 # Parameters
 # Using material properties of water
 density = 1e3 # kg/m^3
-heat_capacity = 4184.0, # J/kg-K, used only in heat transfer coefficient calculation
+heat_capacity = 4184.0 # J/kg-K, used only in heat transfer coefficient calculation
 
 # Parameters for each edge
 diameters = [1.0 for _ in 1:gr.ne(g)]
@@ -31,7 +31,7 @@ params = (density = density,
           diameter = diameters[1],
           massflow = massflows[1],
           dx = dx[1],
-          delta_T = 5.0,
+          delta_T = 0.0,
           T_fixed = 273.15 + 25.0,
           htrans_coeff = htrans_coeff,
          )
@@ -59,7 +59,8 @@ function pipe_edge!(de, e, v_s, v_d, p, _)
     area= 0.25 * pi * (p.diameter ^ 2)
     velocity= p.massflow / (p.density * area)
 
-    de .= -(1 / p.dx) .* FVM.upwind(e, v_s[1], v_d[1], velocity)
+    @views de .= -(1 / p.dx) .* FVM.upwind(e, v_s[1], v_d[1], velocity)
+    @show v_s[1], v_d[1]
 
     return nothing
 end
@@ -68,12 +69,13 @@ function prosumer_edge!(de, e, v_s, v_d, p, _)
     # Prosumer edges must always have n_cells == 1
     # de[1] == 0, algebraic constraint
 
-    de[1] = p.delta_T - e[1] # Fixed temperature change across edge
+    de[1] = p.delta_T - (e[2] - e[1]) # Fixed temperature change across edge
+    de[2] = 0.0 # Dummy
 
     return nothing
 end
 
-function junction_node!(dv, v, edges_in, edges_out, _, _)
+function junction_node!(dv, v, edges_in, edges_out, p, _)
     # DirectedODEVertex
     # dv[1] = 0.0
 
@@ -82,40 +84,50 @@ function junction_node!(dv, v, edges_in, edges_out, _, _)
     enthalpy_in = 0.0
     massflow_out = 0.0
 
-    enthalpy_in += sum(map(e -> e[1] * e[end], filter(e -> e[1] > 0, edges_in)))
-        # for each edge in, if massflow is +ve (ie. massflow into node),
-        #   enthalpy_in += massflow * temperature at edge-node interface
-    enthalpy_in += sum(map(e -> -e[1] * e[2], filter(e -> e[1] < 0, edges_out)))
-        # for each edge out, if massflow is -ve (ie. massflow into node, since massflow direction is defined wrt. edge direction),
-        #   enthalpy_in += (-massflow) * temperature at edge-node interface, - since massflow is -ve
+    # enthalpy_in += sum(map(e -> e[1] * e[end], filter(e -> e[1] > 0, edges_in)))
+    #     # for each edge in, if massflow is +ve (ie. massflow into node),
+    #     #   enthalpy_in += massflow * temperature at edge-node interface
+    # enthalpy_in += sum(map(e -> -e[1] * e[2], filter(e -> e[1] < 0, edges_out)))
+    #     # for each edge out, if massflow is -ve (ie. massflow into node, since massflow direction is defined wrt. edge direction),
+    #     #   enthalpy_in += (-massflow) * temperature at edge-node interface, - since massflow is -ve
 
-    massflow_out += sum(map(e -> e[1], filter(e -> e[1] > 0, edges_out)))
-    massflow_out += sum(map(e -> -e[1], filter(e -> e[1] < 0, edges_in)))
+    # massflow_out += sum(map(e -> e[1], filter(e -> e[1] > 0, edges_out)))
+    # massflow_out += sum(map(e -> -e[1], filter(e -> e[1] < 0, edges_in)))
+    
+    # Remove after testing temperature-only case
+    massflow = p.massflow
+    for e in edges_in
+        enthalpy_in += massflow * e[end]
+    end
+    for e in edges_out
+        massflow_out += massflow
+    end
 
     dv[1] = v[1] - (enthalpy_in / massflow_out) # node_temp = enthalpy_in / massflow_out
 
     return nothing
 end
 
-function fixed_pressure_node!(dv, v, _, _, p, _)
+function fixed_node!(dv, v, _, _, p, _)
     # DirectedODEVertex
     # dv[1] = 0.0
     dv[1] = v[1] - p.T_fixed
     return nothing
 end
 
+edges::Vector{nd.ODEEdge} = [nd.ODEEdge(f=pipe_edge!, dim=n_cells[i], coupling=:directed,
+                                        sym=[Symbol("T$j") for j in 1:n_cells[i]])
+                            for i in 1:4]
 
+# pushfirst!(edges, nd.ODEEdge(f=prosumer_edge!, dim=2, coupling=:directed,
+#                              sym=[Symbol("T$j") for j in 1:2]))
 
 nodes::Vector{nd.DirectedODEVertex} = [nd.DirectedODEVertex(f=junction_node!, dim=1,
-                                                          mass_matrix=zeros(1,1), sym=[:p])
-                                      for _ in 1:3]
-pushfirst!(nodes, nd.DirectedODEVertex(f=fixed_pressure_node!, dim=1, mass_matrix=zeros(1,1),
-                                      sym=[:p]))
+                                                            mass_matrix=zeros(1,1), sym=[:T])
+                                      for i in 2:4]
 
-edges::Vector{nd.ODEEdge} = [nd.ODEEdge(f=pipe_edge!, dim=1, coupling=:directed, mass_matrix=zeros(1,1), sym=[:m])
-                             for _ in 1:3]
-pushfirst!(edges, nd.ODEEdge(f=prosumer_edge!, dim=1, coupling=:directed,
-                             mass_matrix=zeros(1,1), sym=[:m]))
+pushfirst!(nodes, nd.DirectedODEVertex(f=fixed_node!, dim=1, mass_matrix=zeros(1,1), sym=[:T]))
+
 
 nd_fn = nd.network_dynamics(nodes, edges, g)
 
