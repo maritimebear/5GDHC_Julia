@@ -5,7 +5,7 @@ module Physics
 include("./InterpolationSchemes.jl") # provides module FVM
 import .FVM
 
-export pipe!, prosumer!, junction!
+export pipe!, prosumer!, junction!, reference_node!
 
 function pipe!(de, e, v_s, v_d, p, _)
     # Calculate local variables
@@ -61,7 +61,7 @@ function junction!(dv, v, edges_in, edges_out, _, _)
     return nothing
 end
 
-function fixed_node!(dv, v, _, _, p, _)
+function reference_node!(dv, v, _, _, p, _)
     # DirectedODEVertex, dims == 2
     # dv[1:2] = 0.0
     dv[1] = v[1] - p.p_ref
