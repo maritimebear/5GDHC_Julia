@@ -67,8 +67,10 @@ function pipe_edge!(de, e, v_s, v_d, p, _)
     area= 0.25 * pi * (p.diameter ^ 2)
     velocity= p.massflow / (p.density * area)
 
-    @views de .= -(1 / p.dx) .* FVM.upwind(e, v_s[1], v_d[1], velocity)
-    @show v_s[1], v_d[1]
+    convection_term = -(1 / p.dx) .* FVM.upwind(e, v_s[1], v_d[1], velocity)
+    source_term = p.htrans_coeff() .* (e[1:end] .- p.T_ambient)
+
+    @views de .= (convection_term .+ source_term)
 
     return nothing
 end
