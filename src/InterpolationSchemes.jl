@@ -6,6 +6,8 @@ function upwind(phi, phi_W, phi_E, u)
     # Calculates closed_surface_integral( (u*phi) . dS )
     # Expects phi::Vector, where each element contains the value of phi in a finite-volume cell
     # Returns vector of results for each cell
+    @assert (typeof(phi) <: AbstractVector && length(phi) > 1)
+
     neighbour = similar(phi)
     if u > 0
         neighbour[1] = phi_W
