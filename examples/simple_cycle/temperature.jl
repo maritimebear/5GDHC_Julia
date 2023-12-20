@@ -73,16 +73,34 @@ function prosumer_edge!(de, e, v_s, v_d, p, _)
     return nothing
 end
 
-function junction_node!(dv, _, edges_in, edges_out, _, _)
+function junction_node!(dv, v, edges_in, edges_out, _, _)
     # DirectedODEVertex
     # dv[1] = 0.0
-    dv[1] = sum(map(e -> e[1], edges_in)) - sum(map(e -> e[1], edges_out)) # Mass conservation
+
+    # Calculate node temperature from incoming and outgoing edges
+    # Assumption: edge state 1 => mass flow, edge states [2:end] => temperatures in finite-volume cells
+    enthalpy_in = 0.0
+    massflow_out = 0.0
+
+    enthalpy_in += sum(map(e -> e[1] * e[end], filter(e -> e[1] > 0, edges_in)))
+        # for each edge in, if massflow is +ve (ie. massflow into node),
+        #   enthalpy_in += massflow * temperature at edge-node interface
+    enthalpy_in += sum(map(e -> -e[1] * e[2], filter(e -> e[1] < 0, edges_out)))
+        # for each edge out, if massflow is -ve (ie. massflow into node, since massflow direction is defined wrt. edge direction),
+        #   enthalpy_in += (-massflow) * temperature at edge-node interface, - since massflow is -ve
+
+    massflow_out += sum(map(e -> e[1], filter(e -> e[1] > 0, edges_out)))
+    massflow_out += sum(map(e -> -e[1], filter(e -> e[1] < 0, edges_in)))
+
+    dv[1] = v[1] - (enthalpy_in / massflow_out) # node_temp = enthalpy_in / massflow_out
+
     return nothing
 end
 
 function fixed_pressure_node!(dv, v, _, _, p, _)
     # DirectedODEVertex
-    dv[1] = v[1] - p.p_ref
+    # dv[1] = 0.0
+    dv[1] = v[1] - p.T_fixed
     return nothing
 end
 
