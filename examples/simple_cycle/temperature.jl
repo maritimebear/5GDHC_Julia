@@ -1,13 +1,11 @@
 import Graphs as gr
 import NetworkDynamics as nd
-import LinearAlgebra as la
 import DifferentialEquations as de
 import GLMakie, GraphMakie
 
 include("../../src/InterpolationSchemes.jl") # provides module FVM
-
 include("../../src/DHG.jl")
-import .DHG
+import .DHG, .FVM
 
 # Graph
 g = gr.cycle_digraph(4)
