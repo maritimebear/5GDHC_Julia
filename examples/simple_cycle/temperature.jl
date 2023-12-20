@@ -14,7 +14,7 @@ fig_graph = GraphMakie.graphplot(g; ilabels=repr.(1:gr.nv(g)), elabels=repr.(1:g
 # Parameters
 # Using material properties of water
 density = 1e3 # kg/m^3
-heat_capacity = 4184.0, # J/kg-K, used only in heat transfer coefficient calculation
+heat_capacity = 4184.0 # J/kg-K, used only in heat transfer coefficient calculation
 dyn_visc = 8.9e-4 # Pa-s
 
 # Parameters for each edge
