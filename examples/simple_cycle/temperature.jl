@@ -38,7 +38,7 @@ params = (density = density,
           diameter = diameters[1],
           massflow = massflows[1],
           dx = dx[1],
-          delta_T = 0.0,
+          delta_T = 10.0,
           T_fixed = 273.15 + 25.0,
           T_ambient = T_ambient,
           htrans_coeff = htrans_coeff,
@@ -79,8 +79,8 @@ function prosumer_edge!(de, e, v_s, v_d, p, _)
     # Prosumer edges must always have n_cells == 1
     # de[1] == 0, algebraic constraint
 
-    de[1] = p.delta_T - (e[2] - e[1]) # Fixed temperature change across edge
-    de[2] = 0.0 # Dummy
+    de[1] = e[1] - v_s[1] # Upwind convection, e[1] == v_s[1]
+    de[2] = p.delta_T - (e[2] - e[1]) # Fixed temperature change across edge
 
     return nothing
 end
@@ -127,7 +127,10 @@ end
 
 edges::Vector{nd.ODEEdge} = [nd.ODEEdge(f=pipe_edge!, dim=n_cells[i], coupling=:directed,
                                         sym=[Symbol("T$j") for j in 1:n_cells[i]])
-                            for i in 1:4]
+                            for i in 2:4]
+
+pushfirst!(edges, nd.ODEEdge(f=prosumer_edge!, dim=2, coupling=:directed, mass_matrix=zeros(2,2),
+                             sym=[:T_start, :T_end]))
 
 # pushfirst!(edges, nd.ODEEdge(f=prosumer_edge!, dim=2, coupling=:directed,
 #                              sym=[Symbol("T$j") for j in 1:2]))
