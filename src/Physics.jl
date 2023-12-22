@@ -30,7 +30,7 @@ function prosumer!(de, e, v_s, v_d, p, _)
     # de[1:3] == 0, algebraic constraint
 
     de[1] = p.massflow - e[1] # Fixed mass flow rate
-    de[2] = e[2] - v_s[1] # Upwind convection, edge start temp. == source node temp.
+    de[2] = e[2] - v_s[2] # Upwind convection, edge start temp. == source node temp.
     de[3] = p.delta_T - (e[3] - e[2]) # Fixed temperature change across edge
 
     return nothing

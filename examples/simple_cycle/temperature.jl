@@ -68,7 +68,7 @@ nd_fn = nd.network_dynamics(nodes, edges, g)
 
 # Initialise solution
 n_states = sum([mapreduce(x -> x.dim, +, v) for v in (nodes, edges)])
-initial_guess = zeros(n_states)
+initial_guess = ones(n_states)
 init_prob = de.SteadyStateProblem(nd_fn, initial_guess, params)
 init_sol = de.solve(init_prob, de.DynamicSS(de.Rodas5()))
 
