@@ -20,8 +20,9 @@ function pipe!(de, e, v_s, v_d, p, _)
     de[1] = (v_s[1] - v_d[1]) + (p.friction_fn(Re) * velocity * abs(velocity)) # Pressure drop due to friction
 
     # Energy equation, e[2:end] => temperatures in finite-volume cells
-    @views de[2:end] .= -(1 / p.dx) .* FVM.upwind(e[2:end], v_s[2], v_d[2], velocity)
-
+    @views convection = -(1 / p.dx) .* FVM.upwind(e[2:end], v_s[2], v_d[2], velocity)
+    @views source = p.htrans_coeff() .* (e[2:end] .- p.T_ambient)
+    @views de[2:end] .= convection .+ source
     return nothing
 end
 

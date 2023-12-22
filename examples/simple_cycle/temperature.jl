@@ -15,7 +15,14 @@ fig_graph = GraphMakie.graphplot(g; ilabels=repr.(1:gr.nv(g)), elabels=repr.(1:g
 # Using material properties of water
 density = 1e3 # kg/m^3
 heat_capacity = 4184.0 # J/kg-K, used only in heat transfer coefficient calculation
+T_ambient = 273.15 + 10.0 # kelvin
 dyn_visc = 8.9e-4 # Pa-s
+
+# Properties of pipe wall
+# Assuming steel as wall material
+wall_conductivity = 30.0 # W/m-K, NOT A RELIABLE VALUE !!!
+wall_thickness = 10e-3 # m
+
 
 # Parameters for each edge
 diameters = [1.0 for _ in 1:gr.ne(g)]
@@ -24,8 +31,11 @@ pipelengths = [1.0 for _ in 1:gr.ne(g)]
 n_cells = [10 for _ in 1:gr.ne(g)] # number of cells in each edge
 dx = pipelengths ./ n_cells # cell widths of each edge, not cell-centre locations
 
-htrans_coeff = () -> (-1.0)
 friction_fn = (Re) -> (-1.0)
+
+h_wall = () -> (2 * wall_conductivity / wall_thickness) # Wikipedia: Heat transfer coefficient -- Heat transfer coefficient of pipe wall
+htrans_coeff = () -> (-h_wall() / (density * heat_capacity))
+
 
 # Named tuple to be passed to dynamical functions
 params = (density = density,
@@ -34,9 +44,10 @@ params = (density = density,
           massflow = massflows[1],
           dx = dx[1],
           delta_p = 1.0,
-          delta_T = 0.0,
+          delta_T = 10.0,
           p_ref = 101325.0,
           T_fixed = 273.15 + 25.0,
+          T_ambient = T_ambient,
           friction_fn = friction_fn,
           htrans_coeff = htrans_coeff,
          )
