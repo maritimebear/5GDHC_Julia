@@ -6,15 +6,31 @@ import ArgCheck: @argcheck
 import DataStructures as ds
 
 # TODO: exports
+export parse_gml
 
 
 # Custom exception type, only to be thrown by functions inside this module
 struct GraphParsingError <: Exception
     msg::String
 end
-# Method to pretty-print
+## Method to pretty-print
 Base.showerror(io::IO, e::GraphParsingError) = print(io, "GraphParsingError: ", e.msg)
 
+
+# "private" functions to check if required attributes and parameters are specified in the input graph
+
+## Intended to be called by parse_gml()
+
+function _checkparams_fixednode(node) :: Nothing
+    # Try to access required attributes, throw KeyErrors if these attributes are not present
+    # KeyErrors will be caught by caller parse_gml()
+    _ = node[:fixed][:pressure]
+    _ = node[:fixed][:temperature]
+    return nothing
+end
+
+
+# "public" functions, to be exported
 
 function parse_gml(filename::AbstractString)
     # Parse a graph stored as a text file in GML format:
