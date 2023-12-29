@@ -44,16 +44,16 @@ function parse_gml(filename::AbstractString)
                                )
     
     # Check nodes
-    num_fixednodes::Int = 0 # There can only be a single 'fixed' node in the network
-    # Not using dict like edgechecks for nodes to increment num_fixednodes
+    fixednode_found::Bool = false # There can only be a single 'fixed' node in the network
+    # Not using dict like edgechecks for nodes in order to mutate fixednode_found
     for (i, node) in enumerate(nodes_vec)
         try # Handle missing 'type' attribute or unexpected parameters for specified 'type'
             if node[:type] == "junction"
                 nothing # No parameters required for junction nodes
             elseif node[:type] == "fixed"
-                if num_fixednodes > 0; throw(ArgumentError("multiple fixed nodes specified")); end
+                if fixednode_found; throw(ArgumentError("multiple fixed nodes specified")); end
                 _checkparams_fixednode(node)
-                num_fixednodes += 1
+                fixednode_found = true
             else
                 throw(ArgumentError("unrecognised 'type' attribute"))
             end
