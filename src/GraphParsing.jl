@@ -2,7 +2,6 @@ module GraphParsing
 
 import ParserCombinator
 import Graphs
-import ArgCheck: @argcheck
 import DataStructures as ds
 
 # TODO: exports
@@ -55,11 +54,13 @@ function parse_gml(filename::AbstractString)
     edges_vec = parser_dict[:graph][1][:edge]
 
     # Check for unsupported/incompatible inputs
-    @argcheck length(parser_dict[:graph]) == 1 "GML file defines multiple graphs,
-    only a single graph definition is supported"
+    if length(parser_dict[:graph]) != 1
+        throw(GraphParsingError("GML file defines multiple graphs, only a single graph definition is supported"))
+    end
 
-    @argcheck parser_dict[:graph][:directed] == 1 "Graph must be directed,
-    ie. 'directed 1' attribute must be present in graph [ ... ] scope in GML file"
+    if parser_dict[:graph][:directed] != 1
+        throw(GraphParsingError("Graph must be directed, ie. 'directed 1' attribute must be present in graph [ ... ] scope in GML file"))
+    end
 
     # All nodes and edges must have a 'type' attribute, allowed values for type:
     #   Nodes: junction, fixed
