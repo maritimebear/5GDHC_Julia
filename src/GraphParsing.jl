@@ -21,7 +21,7 @@ function parse_gml(filename::AbstractString)
     #   Tuple(Graphs.jl graph, Dict(node id => AttributeDict), Dict(edge key => AttributeDict))
     #       where AttributeDict >: Dict(Symbol => attribute value type)
 
-    parser_dict = ParserCombinator.Parsers.GML.parse_dict(read(filename, String))
+    parser_dict = ParserCombinator.Parsers.GML.parse_dict(read(filename, String)) # Read entire contents of filename as String |> parse_dict()
 
     nodes_vec = parser_dict[:graph][1][:node]
     edges_vec = parser_dict[:graph][1][:edge]
@@ -51,14 +51,14 @@ function parse_gml(filename::AbstractString)
             if node[:type] == "junction"
                 nothing # No parameters required for junction nodes
             elseif node[:type] == "fixed"
-                if num_fixednodes > 0; throw(ArgumentError("Multiple fixed nodes specified")); end
+                if num_fixednodes > 0; throw(ArgumentError("multiple fixed nodes specified")); end
                 _checkparams_fixednode(node)
                 num_fixednodes += 1
             else
                 throw(ArgumentError("unrecognised 'type' attribute"))
             end
         catch exc # Insert node index into stacktrace
-            if typeof(exc) <: {KeyError, ArgumentError} # KeyError if no 'type' attribute, _checkparams functions may throw ArgumentErrors
+            if typeof(exc) <: Union{KeyError, ArgumentError} # KeyError if no 'type' attribute, _checkparams functions may throw ArgumentErrors
                 throw(ArgumentError("GML node $i specification")) # Stacktrace should also show caught exception
             else
                 rethrow(exc)
@@ -72,7 +72,7 @@ function parse_gml(filename::AbstractString)
         try
             edgechecks[edge[:type]](edge)
         catch exc
-            if typeof(exc) <: {KeyError, ArgumentError}
+            if typeof(exc) <: Union{KeyError, ArgumentError}
                 throw(ArgumentError("GML edge $i specification"))
             else
                 rethrow(exc)
