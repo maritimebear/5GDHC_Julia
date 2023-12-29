@@ -5,6 +5,8 @@ import Graphs
 import ArgCheck: @argcheck
 import DataStructures as ds
 
+# TODO: exports
+
 
 function parse_gml(filename::AbstractString)
     # Parse a graph stored as a text file in GML format:
@@ -37,13 +39,13 @@ function parse_gml(filename::AbstractString)
 
     edgechecks = ds.DefaultDict((_) -> throw(ArgumentError("unrecognised 'type' attribute")), # default value
                                 Dict("pipe" =>  _checkparams_pipeedge,
-                                     "fixed" => _checkparams_prosumeredge,
+                                     "prosumer" => _checkparams_prosumeredge,
                                     )
                                )
     
     # Check nodes
-    # Not using dict like edgechecks for nodes to keep track of the number of fixed nodes
     num_fixednodes::Int = 0 # There can only be a single 'fixed' node in the network
+    # Not using dict like edgechecks for nodes to increment num_fixednodes
     for (i, node) in enumerate(nodes_vec)
         try # Handle missing 'type' attribute or unexpected parameters for specified 'type'
             if node[:type] == "junction"
