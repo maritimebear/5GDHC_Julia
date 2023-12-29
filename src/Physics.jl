@@ -7,6 +7,8 @@ import .FVM
 
 export pipe!, prosumer!, junction!, reference_node!
 
+# TODO: 'let' variables in closures for performance
+
 function pipe!(de, e, v_s, v_d, p, _)
     # Calculate local variables
     area = 0.25 * pi * (p.diameter ^ 2)
