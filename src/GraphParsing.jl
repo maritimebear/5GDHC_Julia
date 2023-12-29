@@ -8,6 +8,14 @@ import DataStructures as ds
 # TODO: exports
 
 
+# Custom exception type, only to be thrown by functions inside this module
+struct GraphParsingError <: Exception
+    msg::String
+end
+# Method to pretty-print
+Base.showerror(io::IO, e::GraphParsingError) = print(io, "GraphParsingError: ", e.msg)
+
+
 function parse_gml(filename::AbstractString)
     # Parse a graph stored as a text file in GML format:
     #   https://en.wikipedia.org/wiki/Graph_Modelling_Language
@@ -37,7 +45,7 @@ function parse_gml(filename::AbstractString)
     #   Nodes: junction, fixed
     #   Edges: pipe, prosumer
 
-    edgechecks = ds.DefaultDict((_) -> throw(ArgumentError("unrecognised 'type' attribute")), # default value
+    edgechecks = ds.DefaultDict((_) -> throw(GraphParsingError("unrecognised 'type' attribute")), # default value
                                 Dict("pipe" =>  _checkparams_pipeedge,
                                      "prosumer" => _checkparams_prosumeredge,
                                     )
@@ -51,15 +59,15 @@ function parse_gml(filename::AbstractString)
             if node[:type] == "junction"
                 nothing # No parameters required for junction nodes
             elseif node[:type] == "fixed"
-                if fixednode_found; throw(ArgumentError("multiple fixed nodes specified")); end
+                if fixednode_found; throw(GraphParsingError("multiple fixed nodes specified")); end
                 _checkparams_fixednode(node)
                 fixednode_found = true
             else
-                throw(ArgumentError("unrecognised 'type' attribute"))
+                throw(GraphParsingError("unrecognised 'type' attribute"))
             end
         catch exc # Insert node index into stacktrace
-            if typeof(exc) <: Union{KeyError, ArgumentError} # KeyError if no 'type' attribute, _checkparams functions may throw ArgumentErrors
-                throw(ArgumentError("GML node $i specification")) # Stacktrace should also show caught exception
+            if typeof(exc) <: Union{KeyError, GraphParsingError} # KeyError if no 'type' attribute, _checkparams functions may throw GraphParsingErrors
+                throw(GraphParsingError("GML node $i specification")) # Stacktrace should also show caught exception
             else
                 rethrow(exc)
             end
@@ -72,8 +80,8 @@ function parse_gml(filename::AbstractString)
         try
             edgechecks[edge[:type]](edge)
         catch exc
-            if typeof(exc) <: Union{KeyError, ArgumentError}
-                throw(ArgumentError("GML edge $i specification"))
+            if typeof(exc) <: Union{KeyError, GraphParsingError}
+                throw(GraphParsingError("GML edge $i specification"))
             else
                 rethrow(exc)
             end
