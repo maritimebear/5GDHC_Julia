@@ -31,6 +31,10 @@ function parse_gml(filename::AbstractString)
 
     parser_dict = ParserCombinator.Parsers.GML.parse_dict(read(filename, String)) # Read entire contents of filename as String |> parse_dict()
 
+    # Each attribute in the GML hierarchy is parsed as a symbol, and is mapped to a Vector, String or number
+    #   eg: parser_dict[:graph] is a Vector,
+    #       parser_dict[:graph][1][:node] => Vector{'node' objects}, each object is a Dict{Symbol, value}
+
     nodes_vec = parser_dict[:graph][1][:node]
     edges_vec = parser_dict[:graph][1][:edge]
 
