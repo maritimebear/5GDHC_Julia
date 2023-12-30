@@ -17,7 +17,33 @@ end
 Base.showerror(io::IO, e::GraphParsingError) = print(io, "GraphParsingError: ", e.msg)
 
 
-# "private" functions to check if required attributes and parameters are specified in the input graph
+# "private" functions to check if required attributes and parameters are specified in the input network
+
+function _checkattrs_common(component, common_symbols) :: Nothing
+    # Check attributes common to all nodes and edges
+    # Try to access required attributes, throw KeyErrors if these attributes are not present
+    for symbol in common_symbols
+        _ = component[symbol]
+    end
+    return nothing
+end
+
+
+function _checkattrs_allnodes(node) :: Nothing
+    # Check attributes common to all nodes
+    common_syms = sa.@SVector [:id]
+    _checkattrs_common(node, common_syms) # TODO: @static useful here?
+    return nothing
+end
+
+
+function _checkattrs_alledges(edge) :: Nothing
+    # Check attributes common to all edges
+    common_syms = sa.@SVector [:src, :dst]
+    _checkattrs_common(edge, common_syms)
+    return nothing
+end
+
 
 ## Intended to be called by parse_gml()
 
@@ -57,7 +83,7 @@ end
 # "public" functions, to be exported
 
 function parse_gml(filename::AbstractString)
-    # Parse a graph stored as a text file in GML format:
+    # Parse a network stored as a text file in GML format:
     #   https://en.wikipedia.org/wiki/Graph_Modelling_Language
     # GML supports specification of attributes for nodes and edges, this is used to specify
     # the types and parameters of network components.
@@ -102,6 +128,7 @@ function parse_gml(filename::AbstractString)
     # Not using dict like edgechecks for nodes in order to mutate fixednode_found
     for (i, node) in enumerate(nodes_vec)
         try # Handle missing 'type' attribute or unexpected parameters for specified 'type'
+            _checkattrs_allnodes(node) # Check that attributes common to all nodes are present
             if node[:type] == "junction"
                 nothing # No parameters required for junction nodes
             elseif node[:type] == "fixed"
@@ -124,6 +151,7 @@ function parse_gml(filename::AbstractString)
     # Using edgechecks dict for cleaner control flow
     for (i, edge) in enumerate(edges_vec)
         try
+            _checkattrs_alledges(edge)
             edgechecks[edge[:type]](edge)
         catch exc
             if typeof(exc) <: Union{KeyError, GraphParsingError}
