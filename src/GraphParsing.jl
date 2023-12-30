@@ -5,6 +5,9 @@ import Graphs
 import DataStructures as ds
 import StaticArrays as sa
 
+include("./Utilities.jl")
+import .Utilities as utils
+
 # TODO: exports
 export parse_gml
 
@@ -162,9 +165,14 @@ function parse_gml(filename::AbstractString)
         end
     end
 
-
-
-
+    # Sort nodes_vec in ascending order of node id, to maintain consistency with Graphs.jl ordering
+    sort!(nodes_vec; lt = (node_left, node_right) -> (node_left[:id] < node_right[:id]))
+    # Check if duplicate nodes are present (ie. multiple nodes with the same id)
+    duplicate_idx = utils.adjacent_find((node_left, node_right) -> (node_left[:id] == node_right[:id]),
+                                        view(nodes_vec))
+    if duplicate_idx != length(nodes_vec) # find_adjacent() works similar to C++ std::find_adjacent()
+        throw(GraphParsingError("multiple nodes with same id: $(duplicate_idx)"))
+    end
 
 
 end
