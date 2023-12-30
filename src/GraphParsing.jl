@@ -3,6 +3,7 @@ module GraphParsing
 import ParserCombinator
 import Graphs
 import DataStructures as ds
+import StaticArrays as sa
 
 # TODO: exports
 export parse_gml
