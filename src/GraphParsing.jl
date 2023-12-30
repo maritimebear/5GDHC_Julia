@@ -30,6 +30,30 @@ function _checkparams_fixednode(node) :: Nothing
 end
 
 
+function _checkparams_prosumeredge(edge) :: Nothing
+    # Try to access required attributes, throw KeyErrors if these attributes are not present
+    # KeyErrors will be caught by caller parse_gml()
+    k = keys(edge[:prosumer])
+    _ = edge[:prosumer][:delta_T]
+    if !(xor((:delta_p in k), (:massflow in k)))
+        throw(GraphParsingError("prosumer edge must have either delta_p or massflow specified, but not both together"))
+    end
+    return nothing
+end
+
+
+function _checkparams_pipeedge(edge) :: Nothing
+    # Try to access required attributes, throw KeyErrors if these attributes are not present
+    # KeyErrors will be caught by caller parse_gml()
+    for sym in sa.@SVector [:diameter, :length, :dx]
+        if !(edge[:pipe][sym] > 0)
+            throw(GraphParsingError("$(sym) must be positive"))
+        end
+    end
+    return nothing
+end
+
+
 # "public" functions, to be exported
 
 function parse_gml(filename::AbstractString)
