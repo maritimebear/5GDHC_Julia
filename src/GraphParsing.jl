@@ -42,7 +42,7 @@ end
 
 function _checkattrs_alledges(edge) :: Nothing
     # Check attributes common to all edges
-    common_syms = sa.@SVector [:src, :dst]
+    common_syms = sa.@SVector [:source, :target]
     _checkattrs_common(edge, common_syms)
     return nothing
 end
