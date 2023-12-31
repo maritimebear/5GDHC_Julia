@@ -22,28 +22,35 @@ Base.showerror(io::IO, e::GraphParsingError) = print(io, "GraphParsingError: ", 
 
 # "private" functions to check if required attributes and parameters are specified in the input network
 
-function _checkattrs_common(component, common_symbols) :: Nothing
-    # Check attributes common to all nodes and edges
-    # Try to access required attributes, throw KeyErrors if these attributes are not present
-    for symbol in common_symbols
-        _ = component[symbol]
+# TODO: If argtype check doesn't work, replace with _ = component[symbol]
+function _check_attribute(datastructure, key, type=Any) :: Nothing
+    # Check if attribute can be accessed by specified key
+    # Optionally check if the attribute is a subtype of a specified type
+
+    if !(datastructure[key] <: type) # Throws KeyError if access fails
+        throw(GraphParsingError("attribute is not of expected type"))
     end
+
     return nothing
 end
 
 
 function _checkattrs_allnodes(node) :: Nothing
     # Check attributes common to all nodes
-    common_syms = sa.@SVector [:id]
-    _checkattrs_common(node, common_syms) # TODO: @static useful here?
+    common_attrs = sa.@SVector [(:id, Int)]
+    for (symbol, type) in common_attrs
+        _check_attribute(node, symbol, type)
+    end
     return nothing
 end
 
 
 function _checkattrs_alledges(edge) :: Nothing
     # Check attributes common to all edges
-    common_syms = sa.@SVector [:source, :target]
-    _checkattrs_common(edge, common_syms)
+    common_attrs = sa.@SVector [(:source, Int), (:target, Int)]
+    for (symbol, type) in common_attrs
+        _check_attribute(edge, symbol, type)
+    end
     return nothing
 end
 
@@ -51,32 +58,40 @@ end
 ## Intended to be called by parse_gml()
 
 function _checkparams_fixednode(node) :: Nothing
-    # Try to access required attributes, throw KeyErrors if these attributes are not present
-    # KeyErrors will be caught by caller parse_gml()
-    _ = node[:fixed][:pressure]
-    _ = node[:fixed][:temperature]
+    # Parameters required for fixed nodes
+    attrs = sa.@SVector [(:pressure, Real), (:temperature, Real)]
+    _check_attribute(node, :fixed, AbstractDict)
+    for (symbol, type) in attrs
+        _check_attribute(node[:fixed], symbol, type)
+    end
     return nothing
 end
 
 
 function _checkparams_prosumeredge(edge) :: Nothing
-    # Try to access required attributes, throw KeyErrors if these attributes are not present
-    # KeyErrors will be caught by caller parse_gml()
+    # Parameters required for prosumer edges
+    _check_attribute(edge, :prosumer, AbstractDict)
+    _check_attribute(edge[:prosumer], :delta_T, Real)
     k = keys(edge[:prosumer])
-    _ = edge[:prosumer][:delta_T]
     if !(xor((:delta_p in k), (:massflow in k)))
         throw(GraphParsingError("prosumer edge must have either delta_p or massflow specified, but not both together"))
+    end
+    if :delta_p in k
+        _check_attribute(edge[:prosumer], :delta_p, Real)
+    else
+        _check_attribute(edge[:prosumer], :massflow, Real)
     end
     return nothing
 end
 
 
 function _checkparams_pipeedge(edge) :: Nothing
-    # Try to access required attributes, throw KeyErrors if these attributes are not present
-    # KeyErrors will be caught by caller parse_gml()
-    for sym in sa.@SVector [:diameter, :length, :dx]
-        if !(edge[:pipe][sym] > 0)
-            throw(GraphParsingError("$(sym) must be positive"))
+    # Parameters required for pipe edges
+    _check_attribute(edge, :pipe, AbstractDict)
+    for (symbol, type) in sa.@SVector [(:diameter, Real), (:length, Real), (:dx, Real)]
+        _check_attribute(edge[:pipe], symbol, type)
+        if !(edge[:pipe][symbol] > 0)
+            throw(GraphParsingError("$(symbol) must be positive"))
         end
     end
     return nothing
