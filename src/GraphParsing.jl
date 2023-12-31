@@ -108,7 +108,9 @@ function _construct_graph(nodes_vec, edges_vec)
 
     graph = Graphs.SimpleDiGraph(length(nodes_vec))
     for edge in edges_vec
-        Graphs.add_edge!(graph, edge[:source], edge[:target])
+        if !(Graphs.add_edge!(graph, edge[:source], edge[:target])) # add_edge! -> true/false to indicate success
+            throw(GraphParsingError("Graphs.add_edge! failure: edge $(edge[:source]) => $(edge[:target])"))
+        end
     end
     return graph
 end
