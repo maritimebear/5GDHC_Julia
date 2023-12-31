@@ -1,5 +1,5 @@
 module NetworkComponents
-
+# Structs to interface between parsed network and DHG.jl functions
 
 export Node, Edge, ProsumerEdge, Junction, FixedNode, Pipe, PressureChangeProsumer, MassflowProsumer
 

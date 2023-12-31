@@ -1,5 +1,5 @@
 module ParameterStructs
-
+# Structs to hold parameters, modifiable via DifferentialEquations callbacks
 
 export EdgeParameters, NodeParameters, GlobalParameters, Parameters
 
