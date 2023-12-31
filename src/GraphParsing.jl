@@ -98,6 +98,22 @@ function _checkparams_pipeedge(edge) :: Nothing
 end
 
 
+function _construct_graph(nodes_vec, edges_vec)
+    # Returns Graphs.jl SimpleDiGraph, constructed from nodes_vec and edges_vec
+    # !!! nodes_vec must be sorted in ascending order of node id !!!
+    # This is required for the edge ordering to be correct, as Graphs.jl seems to implement
+    # graphs based on just the number of nodes.
+    # Based on GraphIO.jl, also see for unordered nodes implementation:
+    #   _gml_read_one_graph(), https://github.com/JuliaGraphs/GraphIO.jl/blob/master/ext/GraphIOGMLExt.jl
+
+    graph = Graphs.SimpleDiGraph(length(nodes_vec))
+    for edge in edges_vec
+        Graphs.add_edge!(graph, edge[:source], edge[:target])
+    end
+    return graph
+end
+
+
 # "public" functions, to be exported
 
 function parse_gml(filename::AbstractString)
@@ -182,12 +198,25 @@ function parse_gml(filename::AbstractString)
 
     # Sort nodes_vec in ascending order of node id, to maintain consistency with Graphs.jl ordering
     sort!(nodes_vec; lt = (node_left, node_right) -> (node_left[:id] < node_right[:id]))
+
     # Check if duplicate nodes are present (ie. multiple nodes with the same id)
     duplicate_idx = utils.adjacent_find((node_left, node_right) -> (node_left[:id] == node_right[:id]),
                                         view(nodes_vec))
     if duplicate_idx != length(nodes_vec) # adjacent_find() works similar to C++ std::adjacent_find()
         throw(GraphParsingError("multiple nodes with same id: $(duplicate_idx)"))
     end
+
+    # At this point, the nodes are sorted in ascending order of node id, with no duplicate nodes.
+    # This is required, as Graphs.jl seems to implement graphs based on just the number of nodes.
+    # nodes_vec being sorted in ascending order guarantees that its ordering will match the
+    # ordering of nodes in the graph structure from Graphs.jl.
+
+    # The edge ordering is left up to Graphs.jl, and will be read later from the constructed
+    # graph (the edge ordering scheme used by Graphs.jl does not appear to be documented, possibly
+    # a sparse structure?)
+
+    graph = _construct_graph(nodes_vec, edges_vec)
+
 
 
 end
