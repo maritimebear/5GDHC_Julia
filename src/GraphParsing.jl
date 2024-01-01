@@ -23,14 +23,9 @@ Base.showerror(io::IO, e::GraphParsingError) = print(io, "GraphParsingError: ", 
 # "private" functions to check if required attributes and parameters are specified in the input network
 
 # TODO: If argtype check doesn't work, replace with _ = component[symbol]
-function _check_attribute(datastructure, key, type=Any) :: Nothing
-    # Check if attribute can be accessed by specified key
-    # Optionally check if the attribute is a subtype of a specified type
-
-    if !(datastructure[key] <: type) # Throws KeyError if access fails
-        throw(GraphParsingError("attribute is not of expected type"))
-    end
-
+function _check_attribute(datastructure, key, ::Type{ExpectedType}) :: Nothing where {ExpectedType}
+    # Check if an attribute is accessible by 'key' and is a subtype of 'ExpectedType'
+    datastructure[key]::ExpectedType # Throws KeyError if access fails, TypeError if type assertion fails
     return nothing
 end
 
