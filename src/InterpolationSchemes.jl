@@ -2,7 +2,7 @@ module FVM
 
 export upwind
 
-function upwind(phi::AbstractVector{T}, phi_W, phi_E, u) where T
+function upwind(phi::AbstractVector, phi_W, phi_E, u)
     # Calculates closed surface integral (u*phi) . dS
     # Expects phi::Vector, where each element contains the value of phi in a finite-volume cell
     # Returns vector of results for each cell
