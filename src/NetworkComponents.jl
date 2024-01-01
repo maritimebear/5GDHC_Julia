@@ -14,24 +14,24 @@ struct Junction <: Node
 end
 
 
-struct FixedNode <: Node
+Base.@kwdef struct FixedNode <: Node
     pressure::Float64
     temperature::Float64
 end
 
 
-struct Pipe <: Edge
+Base.@kwdef struct Pipe <: Edge
     # TODO
 end
 
 
-struct PressureChangeProsumer <: ProsumerEdge
+Base.@kwdef struct PressureChangeProsumer <: ProsumerEdge
     delta_p::Float64
     delta_T::Float64
 end
 
 
-struct MassflowProsumer <: ProsumerEdge
+Base.@kwdef struct MassflowProsumer <: ProsumerEdge
     massflow::Float64
 end
 
