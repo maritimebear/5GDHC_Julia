@@ -93,7 +93,7 @@ function _checkparams_pipeedge(edge) :: Nothing
 end
 
 
-function _construct_graph(nodes_vec, edges_vec)
+function _construct_graph(nodes_vec, edges_vec, ::Type{IndexType}) where {IndexType <: Integer}
     # Returns Graphs.jl SimpleDiGraph, constructed from nodes_vec and edges_vec
     # !!! nodes_vec must be sorted in ascending order of node id !!!
     # This is required for the edge ordering to be correct, as Graphs.jl seems to implement
@@ -101,7 +101,7 @@ function _construct_graph(nodes_vec, edges_vec)
     # Based on GraphIO.jl, also see for unordered nodes implementation:
     #   _gml_read_one_graph(), https://github.com/JuliaGraphs/GraphIO.jl/blob/master/ext/GraphIOGMLExt.jl
 
-    graph = Graphs.SimpleDiGraph(length(nodes_vec))
+    graph = Graphs.SimpleDiGraph{IndexType}(length(nodes_vec))
     for edge in edges_vec
         if !(Graphs.add_edge!(graph, edge[:source], edge[:target])) # add_edge! -> true/false to indicate success
             throw(GraphParsingError("Graphs.add_edge! failure: edge $(edge[:source]) => $(edge[:target])"))
@@ -212,7 +212,8 @@ function parse_gml(filename::AbstractString)
     # graph (the edge ordering scheme used by Graphs.jl does not appear to be documented, possibly
     # a sparse structure?)
 
-    graph = _construct_graph(nodes_vec, edges_vec)
+    IndexType = Int # TODO: Change for optimisation?
+    graph = _construct_graph(nodes_vec, edges_vec, IndexType)
 
 
 
