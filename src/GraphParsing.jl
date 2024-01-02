@@ -229,8 +229,55 @@ function parse_gml(filename::AbstractString)
     IndexType = Int # TODO: Change for optimisation?
     graph = _construct_graph(nodes_vec, edges_vec, IndexType)
 
+    # Create Dicts and Vectors to be returned
+    nodes_dict = ComponentDict(Dict(sym => Vector{IndexType} for sym in [:junction, :fixed]),
+                               Vector{nc.Node}
+                              )
+    edges_dict = ComponentDict(Dict(sym => Vector{IndexType} for sym in [:pipe, :delta_p, :massflow]),
+                               Vector{nc.Edge}
+                              )
 
+    for (i, node) in enumerate(nodes_vec)
 
+        if node[:type] == "junction"
+            push!(nodes_dict.indices[:junction], i)
+            push!(nodes_dict.components,
+                  nc.Junction())
+
+        else # node[:type] == "fixed" guaranteed after previous checks
+            push!(nodes_dict.indices[:fixed], i)
+            push!(nodes_dict.components,
+                  nc.FixedNode(node[:fixed][:pressure],
+                               node[:fixed][:temperature])
+                 )
+        end
+    end
+
+    for (i, edge) in enumerate(edges_vec)
+        if edge[:type] == "pipe"
+            push!(edges_dict.indices[:pipe], i)
+            push!(edges_dict.components,
+                  nc.Pipe())
+
+        else # edge[:type] == "prosumer" guaranteed after previous checks
+            if :delta_p in keys(edge[:prosumer])
+                push!(edges_dict.indices[:delta_p], i)
+                push!(edges_dict.components,
+                      nc.PressureChangeProsumer(delta_p=edge[:prosumer][:delta_p],
+                                                delta_T=edge[:prosumer][:delta_T])
+                     )
+            else # :massflow in keys(edge[:prosumer]) guaranteed after previous checks
+                push!(edges_dict.indices[:massflow], i)
+                push!(edges_dict.components,
+                      nc.MassflowProsumer(massflow=edge[:prosumer][:massflow],
+                                          delta_T=edge[:prosumer][:delta_T])
+                     )
+            end
+
+        end
+    end
+
+    return (graph, nodes_dict, edges_dict)
 end
 
 
