@@ -33,6 +33,7 @@ end
 
 Base.@kwdef struct MassflowProsumer <: ProsumerEdge
     massflow::Float64
+    delta_T::Float64
 end
 
 
