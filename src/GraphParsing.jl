@@ -7,6 +7,8 @@ import StaticArrays as sa
 
 include("./Utilities.jl")
 import .Utilities as utils
+include("NetworkComponents.jl")
+import .NetworkComponents as nc
 
 # TODO: exports
 export parse_gml
@@ -18,6 +20,19 @@ struct GraphParsingError <: Exception
 end
 ## Method to pretty-print
 Base.showerror(io::IO, e::GraphParsingError) = print(io, "GraphParsingError: ", e.msg)
+
+
+# Custom dictionary type, to be returned from parse_graph()
+# Holds indices of each component type and a vector with those corresponding indices
+# Using a custom type instead of Dict{Integer, Any} to allow for better optimisation
+Base.@kwdef struct ComponentDict{IdxType, ComponentType <: Union{nc.Node, nc.Edge}} <: AbstractDict
+    # Usage example: _, _, edge_dict::ComponentDict{Int64, nc.Edge} = graph_parse()
+    # edge_dict.indices[:prosumer] => Vector{Int64} with indices of prosumer edges,
+    # edge_dict.components will correspond to these indices.
+
+    indices::Dict{Symbol, Vector{IdxType}}
+    components::Vector{ComponentType}
+end
 
 
 # "private" functions to check if required attributes and parameters are specified in the input network
@@ -123,8 +138,7 @@ function parse_gml(filename::AbstractString)
     # Parameters:
     #   filename: text file to be parsed
     # Return:
-    #   Tuple(Graphs.jl graph, Dict(node id => AttributeDict), Dict(edge key => AttributeDict))
-    #       where AttributeDict >: Dict(Symbol => attribute value type)
+    #   Tuple(Graphs.jl graph, ComponentDict{Integer, nc.Node}, ComponentDict{Integer, nc.Edge}
 
     parser_dict = ParserCombinator.Parsers.GML.parse_dict(read(filename, String)) # Read entire contents of filename as String |> parse_dict()
 
