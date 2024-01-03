@@ -1,11 +1,15 @@
 module ParameterStructs # submodule, included in DHG.jl
-# Structs to hold parameters, modifiable via DifferentialEquations callbacks
+
+export EdgeParameters, NodeParameters, GlobalParameters, Parameters
+
 
 import ..NetworkComponents as nc
 import ..GraphParsing as gp
 
-export EdgeParameters, NodeParameters, GlobalParameters, Parameters
+import SparseArrays as sp
 
+
+# Structs to hold parameters, modifiable via DifferentialEquations callbacks
 
 Base.@kwdef struct EdgeParameters{SparseVectorType}
     # Immutable struct, attribute arrays can still be modified:
@@ -22,10 +26,10 @@ Base.@kwdef struct EdgeParameters{SparseVectorType}
 end
 
 
-Base.@kwdef mutable struct NodeParameters
+Base.@kwdef mutable struct NodeParameters{T<:Real}
     # mutable struct <= p_ref, T_fixed can be changed
-    p_ref::Float64
-    T_fixed::Float64
+    p_ref::T
+    T_fixed::T
 end
 
 
@@ -50,9 +54,10 @@ end
 
 
 # Custom constructors
+
 function NodeParameters(node_dict::gp.ComponentDict{IdxType, nc.Node}) where {IdxType <: Integer}
     # parse_gml() -> ComponentDict |> this constructor -> NodeParameters struct
-    if length(node_dict.indices[:fixed]) != 1 # Should not happen, checked already in parse_gml()
+    if (length(node_dict.indices[:fixed]) != 1) # Should be false, checked already in parse_gml()
         throw(ArgumentError("multiple fixed nodes defined"))
     end
     fixed_idx::IdxType = node_dict.indices[:fixed][1]
