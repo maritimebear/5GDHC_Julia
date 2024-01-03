@@ -21,3 +21,4 @@ end
 
 
 node_params = ParameterStructs.NodeParameters(node_dict)
+edge_params = ParameterStructs.EdgeParameters(edge_dict)

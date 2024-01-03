@@ -67,4 +67,39 @@ function NodeParameters(node_dict::gp.ComponentDict{IdxType, nc.Node}) where {Id
 end
 
 
+function EdgeParameters(edge_dict::gp.ComponentDict{IdxType, nc.Edge}, ::Type{ValueType}=Float64) where {IdxType <: Integer, ValueType <: Real}
+    # parse_gml() -> ComponentDict |> this constructor -> EdgeParameters struct
+    # !! edge_dict must be sorted in the same order as the edges in Graphs.jl object !!
+
+    # Since all edge types have parameters (unlike nodes, where only the fixed node has parameters),
+    # storing edge parameters in sparse vectors, structure of arrays (SoA) layout.
+
+    sparsevec_length = Base.length(edge_dict.components) # SoA => all sparse vectors have the same length; TODO: UndefVarError unless Base.length()?
+    # Vector of indices, for construction of sparse vectors
+    prosumer_idxs::Vector{IdxType} = sort([edge_dict.indices[:massflow]; edge_dict.indices[:deltaP]]) # Concatenate and sort
+
+    # Convenience functions
+    @inline function get_edge_values(field::Symbol, idxs::Vector{IdxType}) :: Vector{ValueType}
+        # Handle no deltaP, no massflow or no pipe edges while maintaining consistent SparseVector{IdxType, ValueType} to EdgeParameters inner ctor
+        result::Vector{ValueType} = [getfield(edge_dict.components[i], field) for i in idxs]
+        return (isempty(result) ? zeros(ValueType, 0) : result)
+    end
+
+    @inline function fwd_to_ctor(idxs::Vector{IdxType}, value_symbol::Symbol) :: sp.SparseVector{ValueType, IdxType}
+        return sp.SparseVector(sparsevec_length, idxs, get_edge_values(value_symbol, idxs))
+    end
+
+    # Sparse vectors
+    diameter = fwd_to_ctor(edge_dict.indices[:pipe], :diameter)
+    length = fwd_to_ctor(edge_dict.indices[:pipe], :length)
+    dx = fwd_to_ctor(edge_dict.indices[:pipe], :dx)
+    massflow = fwd_to_ctor(edge_dict.indices[:massflow], :massflow)
+    deltaP = fwd_to_ctor(edge_dict.indices[:deltaP], :deltaP)
+    deltaT = fwd_to_ctor(prosumer_idxs, :deltaT)
+
+    return EdgeParameters(diameter=diameter, length=length, dx=dx, massflow=massflow, deltaP=deltaP, deltaT=deltaT)
+end
+
+
+
 end # (sub)module
