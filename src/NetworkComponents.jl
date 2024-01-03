@@ -26,14 +26,14 @@ end
 
 
 Base.@kwdef struct PressureChangeProsumer <: ProsumerEdge
-    delta_p::Float64
-    delta_T::Float64
+    deltaP::Float64
+    deltaT::Float64
 end
 
 
 Base.@kwdef struct MassflowProsumer <: ProsumerEdge
     massflow::Float64
-    delta_T::Float64
+    deltaT::Float64
 end
 
 

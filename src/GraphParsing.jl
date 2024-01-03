@@ -81,13 +81,13 @@ end
 function _checkparams_prosumeredge(edge) :: Nothing
     # Parameters required for prosumer edges
     _check_attribute(edge, :prosumer, AbstractDict)
-    _check_attribute(edge[:prosumer], :delta_T, Real)
+    _check_attribute(edge[:prosumer], :deltaT, Real)
     k = keys(edge[:prosumer])
-    if !(xor((:delta_p in k), (:massflow in k)))
-        throw(GraphParsingError("prosumer edge must have either delta_p or massflow specified, but not both together"))
+    if !(xor((:deltaP in k), (:massflow in k)))
+        throw(GraphParsingError("prosumer edge must have either deltaP or massflow specified, but not both together"))
     end
-    if :delta_p in k
-        _check_attribute(edge[:prosumer], :delta_p, Real)
+    if :deltaP in k
+        _check_attribute(edge[:prosumer], :deltaP, Real)
     else
         _check_attribute(edge[:prosumer], :massflow, Real)
     end
@@ -260,17 +260,17 @@ function parse_gml(filename::AbstractString)
                   nc.Pipe())
 
         else # edge[:type] == "prosumer" guaranteed after previous checks
-            if :delta_p in keys(edge[:prosumer])
-                push!(edges_dict.indices[:delta_p], i)
+            if :deltaP in keys(edge[:prosumer])
+                push!(edges_dict.indices[:deltaP], i)
                 push!(edges_dict.components,
-                      nc.PressureChangeProsumer(delta_p=edge[:prosumer][:delta_p],
-                                                delta_T=edge[:prosumer][:delta_T])
+                      nc.PressureChangeProsumer(deltaP=edge[:prosumer][:deltaP],
+                                                deltaT=edge[:prosumer][:deltaT])
                      )
             else # :massflow in keys(edge[:prosumer]) guaranteed after previous checks
                 push!(edges_dict.indices[:massflow], i)
                 push!(edges_dict.components,
                       nc.MassflowProsumer(massflow=edge[:prosumer][:massflow],
-                                          delta_T=edge[:prosumer][:delta_T])
+                                          deltaT=edge[:prosumer][:deltaT])
                      )
             end
 
