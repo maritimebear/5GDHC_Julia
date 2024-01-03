@@ -10,7 +10,6 @@ import .Utilities as utils
 include("NetworkComponents.jl")
 import .NetworkComponents as nc
 
-# TODO: exports
 export parse_gml
 
 
@@ -40,7 +39,8 @@ end
 # TODO: If argtype check doesn't work, replace with _ = component[symbol]
 function _check_attribute(datastructure, key, ::Type{ExpectedType}) :: Nothing where {ExpectedType}
     # Check if an attribute is accessible by 'key' and is a subtype of 'ExpectedType'
-    datastructure[key]::ExpectedType # Throws KeyError if access fails, TypeError if type assertion fails
+    # Throws KeyError if access fails, TypeError if type assertion fails
+    datastructure[key]::ExpectedType # Inline type assertion
     return nothing
 end
 
