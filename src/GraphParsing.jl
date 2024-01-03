@@ -154,7 +154,7 @@ function parse_gml(filename::AbstractString)
         throw(GraphParsingError("GML file defines multiple graphs, only a single graph definition is supported"))
     end
 
-    if parser_dict[:graph][:directed] != 1
+    if parser_dict[:graph][1][:directed] != 1
         throw(GraphParsingError("Graph must be directed, ie. 'directed 1' attribute must be present in graph [ ... ] scope in GML file"))
     end
 
@@ -230,11 +230,11 @@ function parse_gml(filename::AbstractString)
     graph = _construct_graph(nodes_vec, edges_vec, IndexType)
 
     # Create Dicts and Vectors to be returned
-    nodes_dict = ComponentDict(Dict(sym => Vector{IndexType} for sym in [:junction, :fixed]),
-                               Vector{nc.Node}
+    nodes_dict = ComponentDict(Dict(sym => Vector{IndexType}(undef, 0) for sym in [:junction, :fixed]),
+                               Vector{nc.Node}(undef, 0)
                               )
-    edges_dict = ComponentDict(Dict(sym => Vector{IndexType} for sym in [:pipe, :delta_p, :massflow]),
-                               Vector{nc.Edge}
+    edges_dict = ComponentDict(Dict(sym => Vector{IndexType}(undef, 0) for sym in [:pipe, :deltaP, :massflow]),
+                               Vector{nc.Edge}(undef, 0)
                               )
 
     for (i, node) in enumerate(nodes_vec)
