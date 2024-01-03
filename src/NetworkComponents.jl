@@ -21,7 +21,9 @@ end
 
 
 Base.@kwdef struct Pipe <: Edge
-    # TODO
+    diameter::Float64
+    length::Float64
+    dx::Float64
 end
 
 

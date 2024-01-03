@@ -257,7 +257,10 @@ function parse_gml(filename::AbstractString)
         if edge[:type] == "pipe"
             push!(edges_dict.indices[:pipe], i)
             push!(edges_dict.components,
-                  nc.Pipe())
+                  nc.Pipe(length=edge[:pipe][:length],
+                          diameter=edge[:pipe][:diameter],
+                          dx=edge[:pipe][:dx])
+                 )
 
         else # edge[:type] == "prosumer" guaranteed after previous checks
             if :deltaP in keys(edge[:prosumer])
