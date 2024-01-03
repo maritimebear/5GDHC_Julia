@@ -212,7 +212,7 @@ function parse_gml(filename::AbstractString)
 
     # Check if duplicate nodes are present (ie. multiple nodes with the same id)
     duplicate_idx = utils.adjacent_find((node_left, node_right) -> (node_left[:id] == node_right[:id]),
-                                        view(nodes_vec))
+                                        nodes_vec)
     if duplicate_idx != length(nodes_vec) # adjacent_find() works similar to C++ std::adjacent_find()
         throw(GraphParsingError("multiple nodes with same id: $(duplicate_idx)"))
     end
