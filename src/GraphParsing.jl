@@ -1,16 +1,16 @@
-module GraphParsing
+module GraphParsing # submodule, included in DHG.jl
+
+export parse_gml, ComponentDict
+
 
 import ParserCombinator
 import Graphs
 import DataStructures as ds
 import StaticArrays as sa
 
-include("./Utilities.jl")
-import .Utilities as utils
-include("NetworkComponents.jl")
-import .NetworkComponents as nc
+import ..Utilities as utils
+import ..NetworkComponents as nc
 
-export parse_gml
 
 
 # Custom exception type, only to be thrown by functions inside this module
@@ -281,4 +281,4 @@ function parse_gml(filename::AbstractString)
 end
 
 
-end # module GraphParsing
+end # (sub)module

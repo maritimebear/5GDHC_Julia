@@ -1,5 +1,8 @@
-module ParameterStructs
+module ParameterStructs # submodule, included in DHG.jl
 # Structs to hold parameters, modifiable via DifferentialEquations callbacks
+
+import ..NetworkComponents as nc
+import ..GraphParsing as gp
 
 export EdgeParameters, NodeParameters, GlobalParameters, Parameters
 
@@ -59,4 +62,4 @@ function NodeParameters(node_dict::gp.ComponentDict{IdxType, nc.Node}) where {Id
 end
 
 
-end # module
+end # (sub)module

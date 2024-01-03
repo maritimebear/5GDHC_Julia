@@ -3,9 +3,8 @@ import NetworkDynamics as nd
 import DifferentialEquations as de
 import GLMakie, GraphMakie
 
-include("../../src/InterpolationSchemes.jl") # provides module FVM
 include("../../src/DHG.jl")
-import .DHG, .FVM
+import .DHG.WrapperFunctions
 
 # Graph
 g = gr.cycle_digraph(4)
@@ -69,11 +68,11 @@ params = (density = density,
 #          )
 
 
-edges::Vector{nd.ODEEdge} = [DHG.pipe_edge(pipelengths[1], dx[1]) for _ in 1:3]
-pushfirst!(edges, DHG.prosumer_edge())
+edges::Vector{nd.ODEEdge} = [WrapperFunctions.pipe_edge(pipelengths[1], dx[1]) for _ in 1:3]
+pushfirst!(edges, WrapperFunctions.prosumer_edge())
 
-nodes::Vector{nd.DirectedODEVertex} = [DHG.junction_node() for _ in 1:3]
-pushfirst!(nodes, DHG.fixed_node())
+nodes::Vector{nd.DirectedODEVertex} = [WrapperFunctions.junction_node() for _ in 1:3]
+pushfirst!(nodes, WrapperFunctions.fixed_node())
 
 nd_fn = nd.network_dynamics(nodes, edges, g)
 

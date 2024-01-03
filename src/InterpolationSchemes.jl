@@ -1,4 +1,4 @@
-module FVM
+module FVM # submodule, included in DHG.jl
 
 export upwind
 
@@ -18,4 +18,4 @@ function upwind(phi::AbstractVector, phi_W, phi_E, u)
     return (abs(u) .* (phi .- neighbour))
 end
 
-end # module
+end # (sub)module

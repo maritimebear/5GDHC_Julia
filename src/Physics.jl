@@ -1,11 +1,11 @@
+module Physics # submodule, included in DHG.jl
 # Dynamical functions for NetworkDynamics ODEEdge and DirectedODEVertex
 
-module Physics
-
-include("./InterpolationSchemes.jl") # provides module FVM
-import .FVM
-
 export pipe!, prosumer!, junction!, reference_node!
+
+
+import ..FVM
+
 
 # TODO: 'let' variables in closures for performance
 
@@ -72,4 +72,4 @@ function reference_node!(dv, v, _, _, p, _)
     return nothing
 end
 
-end # module
+end # (sub)module

@@ -1,6 +1,5 @@
+module Utilities # submodule, included in DHG.jl
 # Generic utility functions
-
-module Utilities
 
 export adjacent_find
 
@@ -26,4 +25,4 @@ function adjacent_find(binary_predicate, array::AbstractArray)
 end
 
 
-end # module
+end # (sub)module

@@ -1,4 +1,4 @@
-module NetworkComponents
+module NetworkComponents # submodule, included in DHG.jl
 # Structs to interface between parsed network and DHG.jl functions
 
 export Node, Edge, ProsumerEdge, Junction, FixedNode, Pipe, PressureChangeProsumer, MassflowProsumer
@@ -37,4 +37,4 @@ Base.@kwdef struct MassflowProsumer <: ProsumerEdge
 end
 
 
-end # module
+end # (sub)module

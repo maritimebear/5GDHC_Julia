@@ -2,11 +2,9 @@ const plot_graph = false
 
 import Graphs as gr
 
-include("../src/GraphParsing.jl")
-import .GraphParsing
-
-include("../src/ParameterStructs.jl")
-import .ParameterStructs
+include("../src/DHG.jl")
+import .DHG.GraphParsing
+import .DHG.ParameterStructs
 
 @static if plot_graph; import GLMakie, GraphMakie; end
 
