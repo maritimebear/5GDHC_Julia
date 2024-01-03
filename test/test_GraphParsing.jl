@@ -1,9 +1,12 @@
-const plot_graph = true
+const plot_graph = false
 
 import Graphs as gr
 
 include("../src/GraphParsing.jl")
 import .GraphParsing
+
+include("../src/ParameterStructs.jl")
+import .ParameterStructs
 
 @static if plot_graph; import GLMakie, GraphMakie; end
 
@@ -17,4 +20,4 @@ if plot_graph
 end
 
 
-
+node_params = ParameterStructs.NodeParameters(node_dict)

@@ -19,7 +19,8 @@ Base.@kwdef struct EdgeParameters{SparseVectorType}
 end
 
 
-Base.@kwdef struct NodeParameters
+Base.@kwdef mutable struct NodeParameters
+    # mutable struct <= p_ref, T_fixed can be changed
     p_ref::Float64
     T_fixed::Float64
 end
@@ -42,6 +43,19 @@ Base.@kwdef struct Parameters
     global_parameters::GlobalParameters
     node_parameters::NodeParameters
     edge_parameters::EdgeParameters
+end
+
+
+# Custom constructors
+function NodeParameters(node_dict::gp.ComponentDict{IdxType, nc.Node}) where {IdxType <: Integer}
+    # parse_gml() -> ComponentDict |> this constructor -> NodeParameters struct
+    if length(node_dict.indices[:fixed]) != 1 # Should not happen, checked already in parse_gml()
+        throw(ArgumentError("multiple fixed nodes defined"))
+    end
+    fixed_idx::IdxType = node_dict.indices[:fixed][1]
+    return NodeParameters(p_ref=node_dict.components[fixed_idx].pressure,
+                          T_fixed=node_dict.components[fixed_idx].temperature
+                         )
 end
 
 
