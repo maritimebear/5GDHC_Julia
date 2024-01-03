@@ -1,14 +1,16 @@
-const plot_graph = false
-
 import Graphs as gr
 
 include("../src/DHG.jl")
 import .DHG.GraphParsing
 import .DHG.ParameterStructs
 
+# Script parameters
+const inputfile = "./cycle4.gml"
+const plot_graph = false
+
+
 @static if plot_graph; import GLMakie, GraphMakie; end
 
-inputfile = "./cycle4.gml"
 
 graph, node_dict, edge_dict = GraphParsing.parse_gml(inputfile)
 
