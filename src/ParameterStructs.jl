@@ -17,8 +17,8 @@ Base.@kwdef struct EdgeParameters{SparseVectorType}
     dx::SparseVectorType
     # Prosumer edge parameters
     massflow::SparseVectorType
-    delta_p::SparseVectorType
-    delta_T::SparseVectorType
+    deltaP::SparseVectorType
+    deltaT::SparseVectorType
 end
 
 
