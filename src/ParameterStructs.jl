@@ -68,6 +68,7 @@ end
 
 
 function EdgeParameters(edge_dict::gp.ComponentDict{IdxType, nc.Edge}, ::Type{ValueType}=Float64) where {IdxType <: Integer, ValueType <: Real}
+    # -> EdgeParameters{SparseArrays.SparseVector{ValueType, IdxType}}
     # parse_gml() -> ComponentDict |> this constructor -> EdgeParameters struct
     # !! edge_dict must be sorted in the same order as the edges in Graphs.jl object !!
 
@@ -76,17 +77,17 @@ function EdgeParameters(edge_dict::gp.ComponentDict{IdxType, nc.Edge}, ::Type{Va
 
     sparsevec_length = Base.length(edge_dict.components) # SoA => all sparse vectors have the same length; TODO: UndefVarError unless Base.length()?
     # Vector of indices, for construction of sparse vectors
-    prosumer_idxs::Vector{IdxType} = sort([edge_dict.indices[:massflow]; edge_dict.indices[:deltaP]]) # Concatenate and sort
+    prosumer_idxs = sort([edge_dict.indices[:massflow]; edge_dict.indices[:deltaP]]) # Concatenate and sort
 
     # Convenience functions
-    @inline function get_edge_values(field::Symbol, idxs::Vector{IdxType}) :: Vector{ValueType}
+    @inline function get_edge_values(field::Symbol, idxs::Vector{IdxType}) # -> Vector{ValueType}
         # Handle no deltaP, no massflow or no pipe edges while maintaining consistent SparseVector{IdxType, ValueType} to EdgeParameters inner ctor
-        result::Vector{ValueType} = [getfield(edge_dict.components[i], field) for i in idxs]
-        return (isempty(result) ? zeros(ValueType, 0) : result)
+        result = [getfield(edge_dict.components[i], field) for i in idxs]
+        return (isempty(result) ? zeros(ValueType, 0) : result)::Vector{ValueType}
     end
 
-    @inline function fwd_to_ctor(idxs::Vector{IdxType}, value_symbol::Symbol) :: sp.SparseVector{ValueType, IdxType}
-        return sp.SparseVector(sparsevec_length, idxs, get_edge_values(value_symbol, idxs))
+    @inline function fwd_to_ctor(idxs::Vector{IdxType}, value_symbol::Symbol) # -> Vector{SparseVector{ValueType, IdxType}
+        return sp.SparseVector(sparsevec_length, idxs, get_edge_values(value_symbol, idxs))::sp.SparseVector{ValueType, IdxType}
     end
 
     # Sparse vectors
@@ -99,7 +100,6 @@ function EdgeParameters(edge_dict::gp.ComponentDict{IdxType, nc.Edge}, ::Type{Va
 
     return EdgeParameters(diameter=diameter, length=length, dx=dx, massflow=massflow, deltaP=deltaP, deltaT=deltaT)
 end
-
 
 
 end # (sub)module
