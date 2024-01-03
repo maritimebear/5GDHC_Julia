@@ -22,10 +22,10 @@ end
 Base.showerror(io::IO, e::GraphParsingError) = print(io, "GraphParsingError: ", e.msg)
 
 
-# Custom dictionary type, to be returned from parse_graph()
-# Holds indices of each component type and a vector with those corresponding indices
-# Using a custom type instead of Dict{Integer, Any} to allow for better optimisation
-Base.@kwdef struct ComponentDict{IdxType, ComponentType <: Union{nc.Node, nc.Edge}} <: AbstractDict
+# Custom dictionary type, to be returned from parse_gml()
+Base.@kwdef struct ComponentDict{IdxType, # Vector index type
+                                 ComponentType <: Union{nc.Node, nc.Edge}}
+    # Holds a vector of network components and dictionaries to look up the indices of each component type
     # Usage example: _, _, edge_dict::ComponentDict{Int64, nc.Edge} = graph_parse()
     # edge_dict.indices[:prosumer] => Vector{Int64} with indices of prosumer edges,
     # edge_dict.components will correspond to these indices.
