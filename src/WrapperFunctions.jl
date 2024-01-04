@@ -14,8 +14,11 @@ function pipe_edge(length::Real, dx::Real) # -> nd.ODEEdge
     # states 2:end => temperature in finite-volume cells
     # dims == num(states) = 1 + num(cells)
 
-    n_cells = div(length, dx) # number of finite-volume cells, integer division
-    @assert (n_cells > 0 && n_cells != Inf)
+    n_cells::Int = div(length, dx) # number of finite-volume cells, integer division
+    if (n_cells <= 0 || n_cells == Inf)
+        # Change n_cells to UInt to catch these errors, except n_cells == 0
+        throw(ArgumentError("calculated n_cells: $n_cells")) # TODO: add idx to error msg
+    end
 
     # Calculate arguments to NetworkDynamics.ODEEdge
     dims = n_cells + oneunit(n_cells) # type-stable, type-agnostic increment

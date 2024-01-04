@@ -12,5 +12,6 @@ include("./GraphParsing.jl")            # submodule GraphParsing
 include("./ParameterStructs.jl")        # submodule ParameterStructs
 
 # TODO: export parse_gml, others?
+# TODO: global size_t, but NetworkDynamics takes dims::Int
 
 end # module DHG
