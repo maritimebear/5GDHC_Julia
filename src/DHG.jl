@@ -1,8 +1,5 @@
 module DHG
 
-import NetworkDynamics
-import LinearAlgebra
-
 include("./FVM.jl")                     # provides submodule FVM
 include("./Utilities.jl")               # submodule Utilities
 include("./Physics.jl")                 # submodule Physics

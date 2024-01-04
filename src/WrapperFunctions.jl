@@ -1,7 +1,7 @@
 module WrapperFunctions # submodule, included in DHG.jl
 
-import ..NetworkDynamics as nd
-import ..NetworkDynamics as la
+import NetworkDynamics as nd
+import LinearAlgebra as la
 import ..Physics
 
 export pipe_edge, prosumer_edge, junction_node, fixed_node
