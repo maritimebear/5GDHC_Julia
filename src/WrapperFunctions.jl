@@ -8,7 +8,7 @@ export pipe_edge, prosumer_edge, junction_node, fixed_node
 
 ## Wrapper functions around NetworkDynamics structs to calculate arguments to their constructors
 
-function pipe_edge(length::Real, dx::Real) :: nd.ODEEdge
+function pipe_edge(length::Real, dx::Real) # -> nd.ODEEdge
     # Edge with friction-induced pressure drop, temperature loss to surroundings
     # state 1 => mass flow rate
     # states 2:end => temperature in finite-volume cells
@@ -18,7 +18,7 @@ function pipe_edge(length::Real, dx::Real) :: nd.ODEEdge
     @assert (n_cells > 0 && n_cells != Inf)
 
     # Calculate arguments to NetworkDynamics.ODEEdge
-    dims::Int = n_cells + 1
+    dims = n_cells + oneunit(n_cells) # type-stable, type-agnostic increment
     diagonal = la.Diagonal([1 for _ in 1:dims]) # Diagonal of mass matrix
     diagonal[1] = 0 # state 1 corresponds to an algebraic constraint
     symbols = [Symbol("T$i") for i in 0 : n_cells]
@@ -29,7 +29,7 @@ function pipe_edge(length::Real, dx::Real) :: nd.ODEEdge
 end
 
 
-function prosumer_edge() :: nd.ODEEdge
+function prosumer_edge() # -> nd.ODEEdge
     # TODO: choose between (delta_p, delta_T) or (massflow_fixed, delta_T)
     # Prosumer edges always have dims == 3
     # state 1 => mass flow rate,
@@ -45,7 +45,7 @@ function prosumer_edge() :: nd.ODEEdge
 end
 
 
-function junction_node() :: nd.DirectedODEVertex
+function junction_node() # -> nd.DirectedODEVertex
     # dims == 2
     # state 1 => node pressure
     # state 2 => node temperature
@@ -59,7 +59,7 @@ function junction_node() :: nd.DirectedODEVertex
 end
 
 
-function fixed_node() :: nd.DirectedODEVertex
+function fixed_node() # -> nd.DirectedODEVertex
     # dims == 2
     # state 1 => node pressure
     # state 2 => node temperature
