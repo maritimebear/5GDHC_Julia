@@ -8,6 +8,9 @@ export pipe_edge, prosumer_edge, junction_node, fixed_node
 
 ## Wrapper functions around NetworkDynamics structs to calculate arguments to their constructors
 
+# TODO: diagonals to Bool instead of Integer
+# TODO: StaticVector for symbols, but NetworkDynamics only takes Vector{Symbol}
+
 function pipe_edge(length::Real, dx::Real) # -> nd.ODEEdge
     # Edge with friction-induced pressure drop, temperature loss to surroundings
     # state 1 => mass flow rate
