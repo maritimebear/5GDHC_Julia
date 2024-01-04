@@ -217,14 +217,17 @@ function parse_gml(filename::AbstractString)
         throw(GraphParsingError("multiple nodes with same id: $(duplicate_idx)"))
     end
 
-    # At this point, the nodes are sorted in ascending order of node id, with no duplicate nodes.
-    # This is required, as Graphs.jl seems to implement graphs based on just the number of nodes.
-    # nodes_vec being sorted in ascending order guarantees that its ordering will match the
-    # ordering of nodes in the graph structure from Graphs.jl.
+    # Sort edge_vec in lexicographic order, as this is followed by Graphs.jl for its edges:
+    #   e1 < e2 iff (e1.source <= e2.source) and (e1.target < e2.target)
+    sort!(edges_vec,
+          lt = (lhs, rhs) -> ( (lhs[:source], lhs[:target]) < (rhs[:source], rhs[:target]) )
+         ) # Method <(Tuple{Int, Int}, Tuple{Int, Int}) already exists, returns lexicographic less-than
 
-    # The edge ordering is left up to Graphs.jl, and will be read later from the constructed
-    # graph (the edge ordering scheme used by Graphs.jl does not appear to be documented, possibly
-    # a sparse structure?)
+    # At this point, the nodes and edges are sorted in the same order as followed by Graphs.jl SimpleGraphs:
+    #   nodes: in ascending order of node id, with no duplicate nodes
+    #   edges: lexicographic order of (edge.src, edge.dst) pairs
+    #
+    # Sorting the nodes is required, as Graphs.jl seems to implement graphs based on just the number of nodes.
 
     IndexType = Int # TODO: Change for optimisation?
     graph = _construct_graph(nodes_vec, edges_vec, IndexType)
