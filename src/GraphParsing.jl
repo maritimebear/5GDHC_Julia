@@ -122,7 +122,18 @@ function _construct_graph(nodes_vec, edges_vec, ::Type{IndexType}) where {IndexT
             throw(GraphParsingError("Graphs.add_edge! failure: edge $(edge[:source]) => $(edge[:target])"))
         end
     end
+    _check_edge_order(edges_vec, Graphs.edges(graph))
     return graph
+end
+
+function _check_edge_order(edges_vec::Vector, itr_edges_graph::Graphs.SimpleGraphs.SimpleEdgeIter) :: Nothing
+    # Check order of edges between edges_vec and Graphs.jl
+    for (i, (vec_edge, graph_edge)) in enumerate(zip(edges_vec, itr_edges_graph))
+        if (vec_edge[:source] != graph_edge.src) || (vec_edge[:target] != graph_edge.dst)
+            throw(GraphParsingError("edge mismatch between parsed GML and Graphs.jl: edge $i"))
+        end
+    end
+    return nothing
 end
 
 
