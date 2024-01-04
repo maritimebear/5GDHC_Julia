@@ -208,11 +208,11 @@ function parse_gml(filename::AbstractString)
     end
 
     # Sort nodes_vec in ascending order of node id, to maintain consistency with Graphs.jl ordering
-    sort!(nodes_vec; lt = (node_left, node_right) -> (node_left[:id] < node_right[:id]))
+    sort!(nodes_vec; lt = (lhs, rhs) -> (lhs[:id] < rhs[:id]))
 
     # Check if duplicate nodes are present (ie. multiple nodes with the same id)
-    duplicate_idx = utils.adjacent_find((node_left, node_right) -> (node_left[:id] == node_right[:id]),
-                                        nodes_vec)
+    duplicate_idx = utils.adjacent_find((lhs, rhs) -> (lhs[:id] == rhs[:id]), nodes_vec)
+
     if duplicate_idx != length(nodes_vec) # adjacent_find() works similar to C++ std::adjacent_find()
         throw(GraphParsingError("multiple nodes with same id: $(duplicate_idx)"))
     end
@@ -238,7 +238,6 @@ function parse_gml(filename::AbstractString)
                               )
 
     for (i, node) in enumerate(nodes_vec)
-
         if node[:type] == "junction"
             push!(nodes_dict.indices[:junction], i)
             push!(nodes_dict.components,
@@ -276,7 +275,6 @@ function parse_gml(filename::AbstractString)
                                           deltaT=edge[:prosumer][:deltaT])
                      )
             end
-
         end
     end
 
