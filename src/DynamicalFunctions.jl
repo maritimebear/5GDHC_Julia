@@ -130,6 +130,8 @@ function junction!(dv, v, edges_in, edges_out, _, _)
     massflow_out += sum(map(e -> e[1], filter(e -> e[1] > 0, edges_out)))
     massflow_out += sum(map(e -> -e[1], filter(e -> e[1] < 0, edges_in)))
 
+    # Physics implementation
+    dv[1] = sum(map(e -> e[1], edges_in)) - sum(map(e -> e[1], edges_out)) # Mass conservation
     dv[2] = v[2] - (enthalpy_in / massflow_out) # node_temp = enthalpy_in / massflow_out
 
     return nothing
@@ -138,8 +140,10 @@ end
 function reference_node!(dv, v, _, _, p, _)
     # DirectedODEVertex, dims == 2
     # dv[1:2] = 0.0
-    dv[1] = v[1] - p.p_ref
-    dv[2] = v[2] - p.T_fixed
+
+    # Physics implementation
+    dv[1] = v[1] - p.node_parameters.p_ref
+    dv[2] = v[2] - p.node_parameters.T_fixed
     return nothing
 end
 
