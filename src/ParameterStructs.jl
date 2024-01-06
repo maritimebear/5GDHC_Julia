@@ -41,12 +41,12 @@ Base.@kwdef mutable struct GlobalParameters
 end
 
 
-Base.@kwdef struct Parameters
+Base.@kwdef struct Parameters{IndexType <: Integer}
     # Structure of structures of arrays, for modification via DifferentialEquations callbacks:
     #   integrator.p.edge_parameters.whatever[index] = new_value
     global_parameters::GlobalParameters
     node_parameters::NodeParameters
-    edge_parameters::EdgeParameters
+    edge_parameters::EdgeParameters{IndexType}
 end
 
 
