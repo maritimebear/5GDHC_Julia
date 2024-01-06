@@ -11,25 +11,26 @@ import SparseArrays as sp
 
 # Structs to hold parameters, modifiable via DifferentialEquations callbacks
 
-Base.@kwdef struct EdgeParameters{SparseVectorType}
-    # Immutable struct, attribute arrays can still be modified:
+Base.@kwdef struct EdgeParameters{IndexType <: Integer}
+    # Immutable struct, constituent arrays can still be modified:
     #   eg. edge_parameters.diameter[i] = new_value
 
     # Pipe edge parameters
-    diameter::SparseVectorType
-    length::SparseVectorType
-    dx::SparseVectorType
+    diameter::sp.SparseVector{Float64, IndexType}
+    length::sp.SparseVector{Float64, IndexType}
+    dx::sp.SparseVector{Float64, IndexType}
+
     # Prosumer edge parameters
-    massflow::SparseVectorType
-    deltaP::SparseVectorType
-    deltaT::SparseVectorType
+    massflow::sp.SparseVector{Float64, IndexType}
+    deltaP::sp.SparseVector{Float64, IndexType}
+    deltaT::sp.SparseVector{Float64, IndexType}
 end
 
 
-Base.@kwdef mutable struct NodeParameters{T<:Real}
-    # mutable struct <= p_ref, T_fixed can be changed
-    p_ref::T
-    T_fixed::T
+Base.@kwdef mutable struct NodeParameters
+    # mutable struct: p_ref, T_fixed can be changed
+    p_ref::Float64
+    T_fixed::Float64
 end
 
 
