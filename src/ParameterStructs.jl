@@ -33,14 +33,10 @@ Base.@kwdef mutable struct NodeParameters{T<:Real}
 end
 
 
-Base.@kwdef struct GlobalParameters{Functor1, Functor2, Functor3, Functor4}
-    # TODO: dynamic viscosity, heat capacity as constants or functions?
+Base.@kwdef mutable struct GlobalParameters
+    # mutable struct: T_ambient can vary over time
     density::Float64
     T_ambient::Float64
-    dynamic_viscosity::Functor1
-    friction_coeff::Functor2
-    heat_capacity::Functor3
-    heat_loss_coeff::Functor4
 end
 
 

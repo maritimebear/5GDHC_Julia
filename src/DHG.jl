@@ -1,6 +1,7 @@
 module DHG
 
 include("./FVM.jl")                     # provides submodule FVM
+include("./TransportProperties.jl")     # submodule TransportProperties
 include("./Utilities.jl")               # submodule Utilities
 include("./DynamicalFunctions.jl")      # submodule DynamicalFunctions
 include("./WrapperFunctions.jl")        # submodule WrapperFunctions
