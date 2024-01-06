@@ -2,7 +2,7 @@ module DHG
 
 include("./FVM.jl")                     # provides submodule FVM
 include("./Utilities.jl")               # submodule Utilities
-include("./Physics.jl")                 # submodule Physics
+include("./DynamicalFunctions.jl")      # submodule DynamicalFunctions
 include("./WrapperFunctions.jl")        # submodule WrapperFunctions
 include("./NetworkComponents.jl")       # submodule NetworkComponents
 include("./GraphParsing.jl")            # submodule GraphParsing

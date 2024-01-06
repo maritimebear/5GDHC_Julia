@@ -2,7 +2,7 @@ module WrapperFunctions # submodule, included in DHG.jl
 
 import NetworkDynamics as nd
 import LinearAlgebra as la
-import ..Physics
+import ..DynamicalFunctions
 
 export pipe_edge, prosumer_edge, junction_node, fixed_node
 
@@ -30,7 +30,7 @@ function pipe_edge(length::Real, dx::Real) # -> nd.ODEEdge
     symbols = [Symbol("T$i") for i in 0 : n_cells]
     symbols[1] = :m
 
-    return nd.ODEEdge(f=Physics.pipe!, dim=dims, coupling=:directed,
+    return nd.ODEEdge(f=DynamicalFunctions.pipe!, dim=dims, coupling=:directed,
                       mass_matrix=diagonal, sym=symbols)
 end
 
@@ -46,7 +46,7 @@ function prosumer_edge() # -> nd.ODEEdge
     diagonal = la.Diagonal([0 for _ in 1:dims]) # Diagonal of mass matrix
     symbols = [:m, :T_start, :T_end]
 
-    return nd.ODEEdge(f=Physics.prosumer!, dim=dims, coupling=:directed,
+    return nd.ODEEdge(f=DynamicalFunctions.prosumer!, dim=dims, coupling=:directed,
                       mass_matrix=diagonal, sym=symbols)
 end
 
@@ -60,7 +60,7 @@ function junction_node() # -> nd.DirectedODEVertex
     diagonal = la.Diagonal([0 for _ in 1:dims]) # Diagonal of mass matrix
     symbols = [:p, :T]
 
-    return nd.DirectedODEVertex(f=Physics.junction!, dim=dims,
+    return nd.DirectedODEVertex(f=DynamicalFunctions.junction!, dim=dims,
                                 mass_matrix=diagonal, sym=symbols)
 end
 
@@ -74,7 +74,7 @@ function fixed_node() # -> nd.DirectedODEVertex
     diagonal = la.Diagonal([0 for _ in 1:dims]) # Diagonal of mass matrix
     symbols = [:p, :T]
 
-    return nd.DirectedODEVertex(f=Physics.reference_node!, dim=dims,
+    return nd.DirectedODEVertex(f=DynamicalFunctions.reference_node!, dim=dims,
                                 mass_matrix=diagonal, sym=symbols)
 end
 

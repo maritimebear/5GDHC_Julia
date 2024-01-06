@@ -1,4 +1,4 @@
-module Physics # submodule, included in DHG.jl
+module DynamicalFunctions # submodule, included in DHG.jl
 # Dynamical functions for NetworkDynamics ODEEdge and DirectedODEVertex
 
 export pipe!, prosumer!, junction!, reference_node!
