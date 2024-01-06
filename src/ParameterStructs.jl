@@ -57,7 +57,7 @@ function NodeParameters(node_dict::gp.ComponentDict{IdxType, nc.Node}) where {Id
     if (length(node_dict.indices[:fixed]) != 1) # Should be false, checked already in parse_gml()
         throw(ArgumentError("multiple fixed nodes defined"))
     end
-    fixed_idx::IdxType = node_dict.indices[:fixed][1]
+    fixed_idx = node_dict.indices[:fixed][1]::IdxType
     return NodeParameters(p_ref=node_dict.components[fixed_idx].pressure,
                           T_fixed=node_dict.components[fixed_idx].temperature
                          )
@@ -65,7 +65,7 @@ end
 
 
 function EdgeParameters(edge_dict::gp.ComponentDict{IdxType, nc.Edge}, ::Type{ValueType}=Float64) where {IdxType <: Integer, ValueType <: Real}
-    # -> EdgeParameters{SparseArrays.SparseVector{ValueType, IdxType}}
+    # -> EdgeParameters{ValueType, IdxType}
     # parse_gml() -> ComponentDict |> this constructor -> EdgeParameters struct
     # !! edge_dict must be sorted in the same order as the edges in Graphs.jl object !!
 
@@ -84,7 +84,8 @@ function EdgeParameters(edge_dict::gp.ComponentDict{IdxType, nc.Edge}, ::Type{Va
     end
 
     @inline function fwd_to_ctor(idxs::Vector{IdxType}, value_symbol::Symbol) # -> Vector{SparseVector{ValueType, IdxType}
-        return sp.SparseVector(sparsevec_length, idxs, get_edge_values(value_symbol, idxs))::sp.SparseVector{ValueType, IdxType}
+        return sp.SparseVector(sparsevec_length, idxs,
+                               get_edge_values(value_symbol, idxs))::sp.SparseVector{ValueType, IdxType}
     end
 
     # Sparse vectors
@@ -95,7 +96,8 @@ function EdgeParameters(edge_dict::gp.ComponentDict{IdxType, nc.Edge}, ::Type{Va
     deltaP = fwd_to_ctor(edge_dict.indices[:deltaP], :deltaP)
     deltaT = fwd_to_ctor(prosumer_idxs, :deltaT)
 
-    return EdgeParameters(diameter=diameter, length=length, dx=dx, massflow=massflow, deltaP=deltaP, deltaT=deltaT)
+    return EdgeParameters(diameter=diameter, length=length, dx=dx,
+                          massflow=massflow, deltaP=deltaP, deltaT=deltaT)
 end
 
 
