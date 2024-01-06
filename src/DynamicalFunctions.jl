@@ -24,14 +24,14 @@ function pipe(index::Integer, coeff_fns::TransportCoefficients{F1, F2, F3, F4}) 
 
     function f!(de, e, v_s, v_d, p, _)
     # Closure, implements physics for pipe edges: wall friction, heat loss to environment
-    let
-        # https://docs.julialang.org/en/v1/manual/performance-tips/#man-performance-captured
-        index = index
-        dyn_visc = coeff_fns.dynamic_viscosity # TODO: Performance: type annotate lhs?
-        friction = coeff_fns.wall_friction
-        htrans_coeff = coeff_fns.heat_transfer
+        let
+            # Capture constants in let-block for performance
+            # https://docs.julialang.org/en/v1/manual/performance-tips/#man-performance-captured
+            index = index
+            dyn_visc = coeff_fns.dynamic_viscosity # TODO: Performance: type annotate lhs?
+            friction = coeff_fns.wall_friction
+            htrans_coeff = coeff_fns.heat_transfer
 
-        # f! body starts here
             # Get local parameters from Parameters struct
             diameter = p.edge_parameters.diameter[index]
             dx = p.edge_parameters.dx[index]
@@ -54,7 +54,7 @@ function pipe(index::Integer, coeff_fns::TransportCoefficients{F1, F2, F3, F4}) 
             @views source = htrans_coeff() .* (e[2:end] .- T_ambient)
             @views de[2:end] .= convection .+ source
             return nothing
-    end # let block
+        end # let block
     end # f!(...)
 
     return f!
@@ -63,21 +63,24 @@ end
 
 function prosumer_massflow(index::Integer)
     # Returns closure with 'index' captured
-    function f!(de, e, v_s, _, p, _) let index = index
+    function f!(de, e, v_s, _, p, _)
         # Closure, implements physics for prosumer edges with fixed massflow
-        # Prosumer edges must always have dims == 3
-        # de[1:3] == 0, algebraic constraint
+        let
+            index = index
 
-        # Get local parameters from Parameters struct
-        massflow = p.edge_parameters.massflow[index]
-        deltaT = p.edge_parameters.deltaT[index]
+            # Prosumer edges must always have dims == 3
+            # de[1:3] == 0, algebraic constraint
 
-        # Physics implementation
-        de[1] = massflow - e[1] # Fixed mass flow rate
-        de[2] = e[2] - v_s[2] # Upwind convection, edge start temp. == source node temp.
-        de[3] = deltaT - (e[3] - e[2]) # Fixed temperature change across edge
+            # Get local parameters from Parameters struct
+            massflow = p.edge_parameters.massflow[index]
+            deltaT = p.edge_parameters.deltaT[index]
 
-        return nothing
+            # Physics implementation
+            de[1] = massflow - e[1] # Fixed mass flow rate
+            de[2] = e[2] - v_s[2] # Upwind convection, edge start temp. == source node temp.
+            de[3] = deltaT - (e[3] - e[2]) # Fixed temperature change across edge
+
+            return nothing
         end # let block
     end # f!(...)
     return f!
@@ -86,21 +89,24 @@ end
 
 function prosumer_deltaP(index::Integer)
     # Returns closure with 'index' captured
-    function f!(de, e, v_s, v_d, p, _) let index = index
+    function f!(de, e, v_s, v_d, p, _)
         # Closure, implements physics for prosumer edges with fixed pressure change
-        # Prosumer edges must always have dims == 3
-        # de[1:3] == 0, algebraic constraint
+        let
+            index = index
 
-        # Get local parameters from Parameters struct
-        deltaP = p.edge_parameters.deltaP[index]
-        deltaT = p.edge_parameters.deltaT[index]
+            # Prosumer edges must always have dims == 3
+            # de[1:3] == 0, algebraic constraint
 
-        # Physics implementation
-        de[1] = deltaP - (v_d[1] - v_s[1]) # Fixed pressure difference
-        de[2] = e[2] - v_s[2] # Upwind convection, edge start temp. == source node temp.
-        de[3] = deltaT - (e[3] - e[2]) # Fixed temperature change across edge
+            # Get local parameters from Parameters struct
+            deltaP = p.edge_parameters.deltaP[index]
+            deltaT = p.edge_parameters.deltaT[index]
 
-        return nothing
+            # Physics implementation
+            de[1] = deltaP - (v_d[1] - v_s[1]) # Fixed pressure difference
+            de[2] = e[2] - v_s[2] # Upwind convection, edge start temp. == source node temp.
+            de[3] = deltaT - (e[3] - e[2]) # Fixed temperature change across edge
+
+            return nothing
         end # let block
     end # f!(...)
     return f!
