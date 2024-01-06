@@ -10,7 +10,7 @@ import ..TransportProperties: TransportCoefficients
 
 # TODO: 'let' variables in closures for performance
 # TODO: Type annotations for local parameters? (eg. density::T where T is captured from outer function?)
-#           # Probably better to annotate p::ParameterStructs.Parameters in function signature
+#           # Probably better to annotate p::ParameterStructs.Parameters{ValueType, IndexType} in function signature
 # TODO: Refactor junction!() with pipes to chain filter |> map |> sum
 
 

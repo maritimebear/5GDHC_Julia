@@ -11,42 +11,44 @@ import SparseArrays as sp
 
 # Structs to hold parameters, modifiable via DifferentialEquations callbacks
 
-Base.@kwdef struct EdgeParameters{IndexType <: Integer}
+Base.@kwdef struct EdgeParameters{ValueType <: Real, IndexType <: Integer}
     # Immutable struct, constituent arrays can still be modified:
     #   eg. edge_parameters.diameter[i] = new_value
 
     # Pipe edge parameters
-    diameter::sp.SparseVector{Float64, IndexType}
-    length::sp.SparseVector{Float64, IndexType}
-    dx::sp.SparseVector{Float64, IndexType}
+    diameter::sp.SparseVector{ValueType, IndexType}
+    length::sp.SparseVector{ValueType, IndexType}
+    dx::sp.SparseVector{ValueType, IndexType}
 
     # Prosumer edge parameters
-    massflow::sp.SparseVector{Float64, IndexType}
-    deltaP::sp.SparseVector{Float64, IndexType}
-    deltaT::sp.SparseVector{Float64, IndexType}
+    massflow::sp.SparseVector{ValueType, IndexType}
+    deltaP::sp.SparseVector{ValueType, IndexType}
+    deltaT::sp.SparseVector{ValueType, IndexType}
 end
 
 
-Base.@kwdef mutable struct NodeParameters
+Base.@kwdef mutable struct NodeParameters{ValueType <: Real}
     # mutable struct: p_ref, T_fixed can be changed
-    p_ref::Float64
-    T_fixed::Float64
+    p_ref::ValueType
+    T_fixed::ValueType
 end
 
 
-Base.@kwdef mutable struct GlobalParameters
+Base.@kwdef mutable struct GlobalParameters{ValueType <: Real}
     # mutable struct: T_ambient can vary over time
-    density::Float64
-    T_ambient::Float64
+    density::ValueType
+    T_ambient::ValueType
 end
 
 
-Base.@kwdef struct Parameters{IndexType <: Integer}
+Base.@kwdef struct Parameters{ValueType <: Float64, IndexType <: Integer}
     # Structure of structures of arrays, for modification via DifferentialEquations callbacks:
     #   integrator.p.edge_parameters.whatever[index] = new_value
-    global_parameters::GlobalParameters
-    node_parameters::NodeParameters
-    edge_parameters::EdgeParameters{IndexType}
+    # ValueType must be Float64
+
+    global_parameters::GlobalParameters{ValueType}
+    node_parameters::NodeParameters{ValueType}
+    edge_parameters::EdgeParameters{ValueType, IndexType}
 end
 
 
