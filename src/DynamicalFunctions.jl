@@ -1,7 +1,7 @@
 module DynamicalFunctions # submodule, included in DHG.jl
 # Dynamical functions for NetworkDynamics ODEEdge and DirectedODEVertex
 
-export pipe, prosumer_massflow, prosumer_deltaP, junction!, reference_node!
+export pipe, prosumer_massflow, prosumer_deltaP, junction!, fixed_node!
 
 
 import ..FVM
@@ -144,7 +144,7 @@ function junction!(dv, v, edges_in, edges_out, _, _)
     return nothing
 end
 
-function reference_node!(dv, v, _, _, p, _)
+function fixed_node!(dv, v, _, _, p, _)
     # DirectedODEVertex, dims == 2
     # dv[1:2] = 0.0
 

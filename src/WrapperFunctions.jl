@@ -88,7 +88,7 @@ function fixed_node() # -> nd.DirectedODEVertex
     # state 1 => node pressure
     # state 2 => node temperature
 
-    f = DynamicalFunctions.reference_node!
+    f = DynamicalFunctions.fixed_node!
     dims = 2
     diagonal = la.Diagonal([0 for _ in 1:dims]) # Diagonal of mass matrix
     symbols = [:p, :T]
