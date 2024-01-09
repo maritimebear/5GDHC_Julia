@@ -4,6 +4,7 @@ import NetworkDynamics as nd
 import LinearAlgebra as la
 import ..DynamicalFunctions
 import ..TransportProperties.TransportCoefficients
+import ..NetworkComponents
 
 export pipe_edge, prosumer_massflow, prosumer_deltaP, junction_node, fixed_node
 
@@ -11,6 +12,36 @@ export pipe_edge, prosumer_massflow, prosumer_deltaP, junction_node, fixed_node
 
 # TODO: diagonals to Bool instead of Integer
 # TODO: StaticVector for symbols, but NetworkDynamics only takes Vector{Symbol}
+
+
+# Multiple dispatch on NetworkComponents structs
+
+function node_fn(_::NetworkComponents.Junction)
+    return junction_node()
+end
+
+
+function node_fn(_::NetworkComponents.FixedNode)
+    return fixed_node()
+end
+
+
+function edge_fn(_::Integer, edge::NetworkComponents.Pipe, transport_coeffs::TransportCoefficients)
+    return pipe_edge(edge.diameter, edge.length, edge.dx, transport_coeffs)
+end
+
+
+function edge_fn(idx::Integer, _::NetworkComponents.MassflowProsumer, _::TransportCoefficients)
+    return prosumer_massflow(idx)
+end
+
+
+function edge_fn(idx::Integer, _::NetworkComponents.PressureChangeProsumer, _::TransportCoefficients)
+    return prosumer_deltaP(idx)
+end
+
+
+# Methods for each NetworkComponents struct
 
 function pipe_edge(diameter::Real, length::Real, dx::Real, coeff_fns::TransportCoefficients)
     # -> nd.ODEEdge
