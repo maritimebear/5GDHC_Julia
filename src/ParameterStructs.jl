@@ -88,15 +88,11 @@ function EdgeParameters(edge_dict::gp.ComponentDict{IdxType, nc.Edge}, ::Type{Va
     end
 
     # Sparse vectors
-    diameter = fwd_to_ctor(edge_dict.indices[:pipe], :diameter)
-    length = fwd_to_ctor(edge_dict.indices[:pipe], :length)
-    dx = fwd_to_ctor(edge_dict.indices[:pipe], :dx)
     massflow = fwd_to_ctor(edge_dict.indices[:massflow], :massflow)
     deltaP = fwd_to_ctor(edge_dict.indices[:deltaP], :deltaP)
     deltaT = fwd_to_ctor(prosumer_idxs, :deltaT)
 
-    return EdgeParameters(diameter=diameter, length=length, dx=dx,
-                          massflow=massflow, deltaP=deltaP, deltaT=deltaT)
+    return EdgeParameters(massflow=massflow, deltaP=deltaP, deltaT=deltaT)
 end
 
 
