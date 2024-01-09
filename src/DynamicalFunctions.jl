@@ -19,7 +19,7 @@ import ..TransportProperties: TransportCoefficients
 ## Each edge can have different parameters, so each edge function is a closure with an 'index' captured.
 ## 'index' is used to access corresponding values from ParameterStructs.EdgeParameters.
 
-function pipe(index::Integer, coeff_fns::TransportCoefficients{F1, F2, F3, F4}) where {F1, F2, F3, F4}
+function pipe(diameter::Float64, dx::Float64, coeff_fns::TransportCoefficients{F1, F2, F3, F4}) where {F1, F2, F3, F4}
     # Returns closure with 'index' and transport property functions captured
 
     function f!(de, e, v_s, v_d, p, _)
@@ -27,18 +27,19 @@ function pipe(index::Integer, coeff_fns::TransportCoefficients{F1, F2, F3, F4}) 
         let
             # Capture constants in let-block for performance
             # https://docs.julialang.org/en/v1/manual/performance-tips/#man-performance-captured
-            index = index
+            diameter = diameter
+            dx = dx
             dyn_visc = coeff_fns.dynamic_viscosity # TODO: Performance: type annotate lhs?
             friction = coeff_fns.wall_friction
             htrans_coeff = coeff_fns.heat_transfer
 
+            # Constant
+            area = 0.25 * pi * (diameter ^ 2) # TODO: Mark const?
+
             # Get local parameters from Parameters struct
-            diameter = p.edge_parameters.diameter[index]
-            dx = p.edge_parameters.dx[index]
             density = p.global_parameters.density
             T_ambient = p.global_parameters.T_ambient
             # Calculate local variables
-            area = 0.25 * pi * (diameter ^ 2)
             velocity = e[1] / (density * area)
             Re = density * velocity * diameter / dyn_visc()
 
