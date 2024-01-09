@@ -12,4 +12,10 @@ include("./ParameterStructs.jl")        # submodule ParameterStructs
 # TODO: export parse_gml, others?
 # TODO: global size_t, but NetworkDynamics takes dims::Int
 
+import .TransportProperties: TransportCoefficients
+import .ParameterStructs: NodeParameters, EdgeParameters, GlobalParameters, Parameters
+
+export TransportCoefficients
+export NodeParameters, EdgeParameters, GlobalParameters, Parameters
+
 end # module DHG
