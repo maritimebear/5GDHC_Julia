@@ -74,12 +74,12 @@ function junction_node() # -> nd.DirectedODEVertex
     # state 1 => node pressure
     # state 2 => node temperature
 
+    f = DynamicalFunctions.junction!
     dims = 2
     diagonal = la.Diagonal([0 for _ in 1:dims]) # Diagonal of mass matrix
     symbols = [:p, :T]
 
-    return nd.DirectedODEVertex(f=DynamicalFunctions.junction!, dim=dims,
-                                mass_matrix=diagonal, sym=symbols)
+    return nd.DirectedODEVertex(f=f, dim=dims, mass_matrix=diagonal, sym=symbols)
 end
 
 
@@ -88,12 +88,12 @@ function fixed_node() # -> nd.DirectedODEVertex
     # state 1 => node pressure
     # state 2 => node temperature
 
+    f = DynamicalFunctions.reference_node!
     dims = 2
     diagonal = la.Diagonal([0 for _ in 1:dims]) # Diagonal of mass matrix
     symbols = [:p, :T]
 
-    return nd.DirectedODEVertex(f=DynamicalFunctions.reference_node!, dim=dims,
-                                mass_matrix=diagonal, sym=symbols)
+    return nd.DirectedODEVertex(f=f, dim=dims, mass_matrix=diagonal, sym=symbols)
 end
 
 
