@@ -41,12 +41,12 @@ dhg = DHG.DHGStruct(() -> DHG.parse_gml(inputfile),
                    )
 
 
-nd_fn = nd.network_dynamics(dhg.node_functions, dhg.edge_functions, dhg.graph)
-
 # Initialise solution
-initial_guess = DHG.Utilities.solution_vector(dhg, oneunit(Float64))
+
+## Initial values must not be zero for initialiser to work
+initial_guess = [1.0 for _ in 1:sum(reduce(+, v) for v in (dhg.n_states.nodes, dhg.n_states.edges))]
 initialiser! = DHG.Utilities.initialiser(de.DynamicSS(de.Rodas5())) # Get closure function
-initialiser!(nd_fn, initial_guess, dhg.parameters) # Call closure function
+initialiser!(dhg.f, initial_guess, dhg.parameters) # Call closure function
 
 
 if plot_graph

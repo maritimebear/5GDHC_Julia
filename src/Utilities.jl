@@ -1,7 +1,7 @@
 module Utilities # submodule, included in DHG.jl
 # Generic utility functions
 
-export adjacent_find, solution_vector, initialiser
+export adjacent_find, initialiser
 
 import DifferentialEquations as de
 
@@ -24,21 +24,6 @@ function adjacent_find(binary_predicate, array::AbstractArray)
         end
     end
     return idxs[end] # No match found
-end
-
-
-function solution_vector(dhg, fillvalue=nothing) # -> Vector{Float64}
-    # Returns Vector{Float64} with number of elements equal to the number of unknowns in dhg
-    # dhg::DHG.DHGStruct
-    # Order of unknowns: [<node states>; <edge states>]
-
-    n_states = sum([mapreduce(x -> x.dim, +, v) for v in (dhg.node_functions, dhg.edge_functions)])
-        # Add up the number of unknowns in all nodes and edges
-
-    if isnothing(fillvalue)
-        return Vector{Float64}(undef, n_states)
-    end
-    return [fillvalue::Float64 for _ in 1:n_states] # type-assertion runs n_states times?
 end
 
 
