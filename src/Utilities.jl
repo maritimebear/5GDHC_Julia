@@ -20,8 +20,8 @@ function adjacent_find(binary_predicate, array::AbstractArray)
 
     idxs = LinearIndices(array)
     for i in idxs[1:end-1]
-        @inbounds if binary_predicate(array[idxs[i]], array[idxs[i+1]])
-            return idxs[i]
+        @inbounds if binary_predicate(array[i], array[i+oneunit(i)])
+            return i
         end
     end
     return idxs[end] # No match found
