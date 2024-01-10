@@ -46,8 +46,8 @@ nd_fn = nd.network_dynamics(dhg.node_functions, dhg.edge_functions, dhg.graph)
 # Initialise solution
 n_states = sum([mapreduce(x -> x.dim, +, v) for v in (dhg.node_functions, dhg.edge_functions)])
 initial_guess = ones(n_states)
-init_prob = de.SteadyStateProblem(nd_fn, initial_guess, dhg.parameters)
-init_sol = de.solve(init_prob, de.DynamicSS(de.Rodas5()))
+initialiser! = DHG.Utilities.initialiser(de.DynamicSS(de.Rodas5())) # Get closure function
+initialiser!(nd_fn, initial_guess, dhg.parameters) # Call closure function
 
 
 if plot_graph

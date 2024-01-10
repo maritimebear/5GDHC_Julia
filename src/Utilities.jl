@@ -1,7 +1,9 @@
 module Utilities # submodule, included in DHG.jl
 # Generic utility functions
 
-export adjacent_find
+export adjacent_find, initialiser
+
+import DifferentialEquations as de
 
 
 function adjacent_find(binary_predicate, array::AbstractArray)
@@ -22,6 +24,22 @@ function adjacent_find(binary_predicate, array::AbstractArray)
         end
     end
     return idxs[end] # No match found
+end
+
+
+function initialiser(solver::de.SciMLBase.AbstractSteadyStateAlgorithm)
+    # Returns closure: (f, x, parameters) -> Nothing,
+    #   x modified in-place: x .= solve(SteadyStateProblem(f, x, parameters), solver)
+    #   solve, SteadyStateProblem from DifferentialEquations
+    function initialise!(f, x, parameters)
+        # Can be used to get initial guess or to re-initialise the solution after a callback
+        let solver = solver
+            initial_prob = de.SteadyStateProblem(f, x, parameters)
+            x .= de.solve(initial_prob, solver).u
+            return nothing
+        end
+    end
+    return initialise!
 end
 
 
