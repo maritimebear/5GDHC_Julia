@@ -4,6 +4,7 @@ module Utilities # submodule, included in DHG.jl
 export adjacent_find, initialiser
 
 import DifferentialEquations as de
+import Graphs
 
 
 function adjacent_find(binary_predicate, array::AbstractArray)
@@ -40,6 +41,19 @@ function initialiser(solver::de.SciMLBase.AbstractSteadyStateAlgorithm)
         end
     end
     return initialise!
+end
+
+
+function find_edge_idx(graph::Graphs.SimpleGraphs.SimpleDiGraph{T}, src_node_idx::T, dst_node_idx::T) where {T <: Integer}
+    # -> T (type used to store node indices in 'graph')
+    # Find the index of the first (and assumed only) edge in 'graph' from 'src_node' to 'dst_node'
+    # Returns zero(T) if no matching edge is found
+    for (i, edge) in enumerate(Graphs.edges(graph))
+        if (edge.src == src_node_idx) && (edge.dst == dst_node_idx)
+            return T(i)
+        end
+    end
+    return zero(T)
 end
 
 
