@@ -35,7 +35,7 @@ transport_coeffs = DHG.TransportCoefficients(dynamic_viscosity=dyn_visc,
                                              heat_capacity=heat_capacity,
                                              heat_transfer=heat_transfer)
 
-dhg = DHG.DHGStruct(() -> DHG.GraphParsing.parse_gml(inputfile),
+dhg = DHG.DHGStruct(() -> DHG.parse_gml(inputfile),
                     global_params,
                     transport_coeffs
                    )

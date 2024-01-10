@@ -12,21 +12,25 @@ include("./ParameterStructs.jl")        # submodule ParameterStructs
 # TODO: export parse_gml, others?
 # TODO: global size_t, but NetworkDynamics takes dims::Int
 
-import .TransportProperties: TransportCoefficients
-import .ParameterStructs: NodeParameters, EdgeParameters, GlobalParameters, Parameters
-
-import Graphs
+import Graphs: SimpleGraphs.SimpleDiGraph
 import NetworkDynamics
+import DifferentialEquations: SciMLBase
 
-export TransportCoefficients
-export NodeParameters, EdgeParameters, GlobalParameters, Parameters
+# import and re-export from submodules for easier access
+import .GraphParsing: parse_gml
+import .ParameterStructs: GlobalParameters
+import .TransportProperties: TransportCoefficients
+
+export GlobalParameters, TransportProperties, parse_gml
+
+export DHGStruct
 
 
 Base.@kwdef struct DHGStruct{IndexType <: Integer}
     node_functions::Vector{NetworkDynamics.DirectedODEVertex}
     edge_functions::Vector{NetworkDynamics.ODEEdge}
     parameters::ParameterStructs.Parameters
-    graph::Graphs.SimpleGraphs.SimpleDiGraph{IndexType}
+    graph::SimpleDiGraph{IndexType}
 end
 
 
