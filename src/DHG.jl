@@ -31,32 +31,35 @@ Base.@kwdef struct DHGStruct{IndexType <: Integer}
     edge_functions::Vector{NetworkDynamics.ODEEdge}
     parameters::ParameterStructs.Parameters
     graph::SimpleDiGraph{IndexType}
+    edges::Vector{NetworkComponents.Edge}
 end
 
 
 function DHGStruct(graph_parser::Function,
                     global_parameters::ParameterStructs.GlobalParameters,
-                    transport_coeffs::TransportProperties.TransportCoefficients)
+                    transport_coeffs::TransportProperties.TransportCoefficients,
+                )
     # Constructor
 
     graph, node_dict, edge_dict = graph_parser()
+    edgevec::Vector{NetworkComponents.Edge} = edge_dict.components
     parameters = ParameterStructs.Parameters(global_parameters = global_parameters,
                                              node_parameters = ParameterStructs.NodeParameters(node_dict),
                                              edge_parameters = ParameterStructs.EdgeParameters(edge_dict)
                                             )
     # Assemble dynamical functions
     node_fns = Vector{NetworkDynamics.DirectedODEVertex}(undef, length(node_dict.components))
-    edge_fns = Vector{NetworkDynamics.ODEEdge}(undef, length(edge_dict.components))
+    edge_fns = Vector{NetworkDynamics.ODEEdge}(undef, length(edgevec))
 
     for (i, node) in enumerate(node_dict.components)
         node_fns[i] = WrapperFunctions.node_fn(node)
     end
 
-    for (i, edge) in enumerate(edge_dict.components)
+    for (i, edge) in enumerate(edgevec)
         edge_fns[i] = WrapperFunctions.edge_fn(i, edge, transport_coeffs)
     end
 
-    return DHGStruct(node_functions=node_fns, edge_functions=edge_fns, parameters=parameters, graph=graph)
+    return DHGStruct(node_functions=node_fns, edge_functions=edge_fns, parameters=parameters, graph=graph, edges=edgevec)
 end
 
 end # module DHG
