@@ -50,6 +50,6 @@ initialiser!(dhg.f, initial_guess, dhg.parameters) # Call closure function
 
 
 if plot_graph
-    fig_graph = GraphMakie.graphplot(graph; ilabels=repr.(1:gr.nv(graph)), elabels=repr.(1:gr.ne(graph)))
+    fig_graph = GraphMakie.graphplot(dhg.graph; ilabels=repr.(1:gr.nv(dhg.graph)), elabels=repr.(1:gr.ne(dhg.graph)))
     display(fig_graph)
 end
