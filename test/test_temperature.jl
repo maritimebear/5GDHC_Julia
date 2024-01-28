@@ -47,6 +47,8 @@ dhg = DHG.DHGStruct(() -> DHG.parse_gml(inputfile),
 initial_guess = [1.0 for _ in 1:sum(reduce(+, v) for v in (dhg.n_states.nodes, dhg.n_states.edges))]
 initialiser! = DHG.Utilities.initialiser(de.DynamicSS(de.Rodas5())) # Get closure function
 initialiser!(dhg.f, initial_guess, dhg.parameters) # Call closure function
+# prob = de.ODEProblem(dhg.f, initial_guess, (0.0, 5*787.0), dhg.parameters)
+# sol = de.solve(prob, de.Rodas5())
 
 
 if plot_graph
