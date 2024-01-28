@@ -46,7 +46,7 @@ dhg = DHG.DHGStruct(() -> DHG.parse_gml(inputfile),
 ## Initial values must not be zero for initialiser to work
 initial_guess = [1.0 for _ in 1:sum(reduce(+, v) for v in (dhg.n_states.nodes, dhg.n_states.edges))]
 initialiser! = DHG.Utilities.initialiser(de.DynamicSS(de.Rodas5())) # Get closure function
-initialiser!(dhg.f, initial_guess, dhg.parameters) # Call closure function
+init_retcode = initialiser!(dhg.f, initial_guess, dhg.parameters) # Call closure function, update initial_guess
 # prob = de.ODEProblem(dhg.f, initial_guess, (0.0, 5*787.0), dhg.parameters)
 # sol = de.solve(prob, de.Rodas5())
 

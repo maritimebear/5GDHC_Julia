@@ -29,15 +29,16 @@ end
 
 
 function initialiser(solver::de.SciMLBase.AbstractSteadyStateAlgorithm)
-    # Returns closure: (f, x, parameters) -> Nothing,
+    # Returns closure: (f, x, parameters) -> ReturnCode,
     #   x modified in-place: x .= solve(SteadyStateProblem(f, x, parameters), solver)
     #   solve, SteadyStateProblem from DifferentialEquations
     function initialise!(f, x, parameters)
         # Can be used to get initial guess or to re-initialise the solution after a callback
         let solver = solver
             initial_prob = de.SteadyStateProblem(f, x, parameters)
-            x .= de.solve(initial_prob, solver).u
-            return nothing
+            sol = de.solve(initial_prob, solver)
+            x .= sol.u # Update state-vector x
+            return sol.retcode
         end
     end
     return initialise!
