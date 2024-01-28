@@ -31,11 +31,16 @@ function pipe_edge!(de, e, v_s, v_d, p, _)
     return nothing
 end
 
-function prosumer_edge!(de, e, v_s, v_d, p, _)
+function prosumer_edge!(de, e, v_s, v_d, p, t)
     # de[1] == 0, enforce fixed pressure drop or massflow across edge to model pump/heat exchanger
 
+    massflow = 10 * tanh(t) # Dynamic massflow
+    deltaP = p.deltaP_fn(massflow) # Pressure change dependent on massflow
+
     # de[1] = p.delta_p - (v_d[1] - v_s[1]) # Fixed pressure difference
-    de[1] = p.massflow - e[1] # Fixed mass flow rate
+
+    de[1] = massflow - e[1]
+    de[2] = deltaP - (v_d[1] - v_s[1])
 
     return nothing
 end
@@ -75,10 +80,10 @@ nodes::Vector{nd.DirectedODEVertex} = [nd.DirectedODEVertex(f=junction_node!, di
 pushfirst!(nodes, nd.DirectedODEVertex(f=fixed_pressure_node!, dim=1, mass_matrix=zeros(1,1),
                                       sym=[:p]))
 
-edges::Vector{nd.ODEEdge} = [nd.ODEEdge(f=prosumer_edge!, dim=1, coupling=:directed, mass_matrix=zeros(1,1), sym=[:m]),
-                             nd.ODEEdge(f=pipe_edge!, dim=1, coupling=:directed, mass_matrix=zeros(1,1), sym=[:m]),
-                             nd.ODEEdge(f=dynamic_deltaP!, dim=1, coupling=:directed, mass_matrix=zeros(1,1), sym=[:m]),
-                             nd.ODEEdge(f=pipe_edge!, dim=1, coupling=:directed, mass_matrix=zeros(1,1), sym=[:m]),
+edges::Vector{nd.ODEEdge} = [nd.ODEEdge(f=prosumer_edge!, dim=2, coupling=:directed, mass_matrix=zeros(2,2),),
+                             nd.ODEEdge(f=pipe_edge!, dim=1, coupling=:directed, mass_matrix=zeros(1,1),),
+                             nd.ODEEdge(f=pipe_edge!, dim=1, coupling=:directed, mass_matrix=zeros(1,1),),
+                             nd.ODEEdge(f=pipe_edge!, dim=1, coupling=:directed, mass_matrix=zeros(1,1),),
                             ]
 
 nd_fn = nd.network_dynamics(nodes, edges, g)
