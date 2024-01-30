@@ -37,8 +37,8 @@ function pipe(diameter::Float64, dx::Float64, coeff_fns::TransportProperties{F1,
             area = 0.25 * pi * (diameter ^ 2) # TODO: Mark const?
 
             # Get local parameters from Parameters struct
-            density = p.global_parameters.density
-            T_ambient = p.global_parameters.T_ambient
+            density = p.density
+            T_ambient = p.T_ambient
             # Calculate local variables
             velocity = e[1] / (density * area)
             Re = density * velocity * diameter / dyn_visc
@@ -183,8 +183,8 @@ function fixed_node!(dv, v, _, _, p, _)
     # dv[1:2] = 0.0
 
     # Physics implementation
-    dv[1] = v[1] - p.node_parameters.p_ref
-    dv[2] = v[2] - p.node_parameters.T_fixed
+    dv[1] = v[1] - p.p_ref
+    dv[2] = v[2] - p.T_fixed # TODO: Remove T_fixed, calculate nodal temperature like junction nodes
     return nothing
 end
 
