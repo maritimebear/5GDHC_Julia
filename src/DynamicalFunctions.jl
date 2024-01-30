@@ -42,17 +42,20 @@ function pipe(diameter::Float64, dx::Float64, coeff_fns::TransportCoefficients{F
             # Calculate local variables
             velocity = e[1] / (density * area)
             Re = density * velocity * diameter / dyn_visc()
+            ## Momentum equation
+            deltaP = friction(Re) * velocity * abs(velocity) # Pressure drop due to friction
+            ## Energy equation
+            @views convection = -(1 / dx) .* FVM.upwind(e[2:end], v_s[2], v_d[2], velocity)
+            @views source = htrans_coeff() .* (e[2:end] .- T_ambient)
 
             # Physics implementation
             # e[1] : mass flow rate, algebraic constraint
+            # e[2:end] : temperatures in finite-volume cells
             #   => de[1] == 0, used to calculate pressure drop across pipe due to friction
             # TODO: Implement pressure loss according to Cengel eqn. 8-21,
             #       Churchill or Swamee-Jain approximation for Darcy-Weisbach f
-            de[1] = (v_s[1] - v_d[1]) + (friction(Re) * velocity * abs(velocity)) # Pressure drop due to friction
+            de[1] = deltaP - (v_d[1] - v_s[1]) # Momentum equation
 
-            # Energy equation, e[2:end] => temperatures in finite-volume cells
-            @views convection = -(1 / dx) .* FVM.upwind(e[2:end], v_s[2], v_d[2], velocity)
-            @views source = htrans_coeff() .* (e[2:end] .- T_ambient)
             @views de[2:end] .= convection .+ source
             return nothing
         end # let block
