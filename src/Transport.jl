@@ -1,6 +1,6 @@
 module Transport # submodule, included in DHG.jl
 
-export Transport
+export TransportProperties
 
 
 Base.@kwdef struct TransportProperties{T1, T2, T3, T4}

@@ -5,7 +5,7 @@ export pipe, prosumer_massflow, prosumer_deltaP, junction!, fixed_node!
 
 
 import ..FVM
-import ..TransportProperties: TransportCoefficients
+import ..Transport: TransportProperties
 
 
 # TODO: 'let' variables in closures for performance
@@ -19,7 +19,7 @@ import ..TransportProperties: TransportCoefficients
 ## Each edge can have different parameters, so each edge function is a closure with an 'index' captured.
 ## 'index' is used to access corresponding values from ParameterStructs.EdgeParameters.
 
-function pipe(diameter::Float64, dx::Float64, coeff_fns::TransportCoefficients{F1, F2, F3, F4}) where {F1, F2, F3, F4}
+function pipe(diameter::Float64, dx::Float64, coeff_fns::TransportProperties{F1, F2, F3, F4}) where {F1, F2, F3, F4}
     # Returns closure with 'index' and transport property functions captured
 
     function f!(de, e, v_s, v_d, p, _)
@@ -41,12 +41,12 @@ function pipe(diameter::Float64, dx::Float64, coeff_fns::TransportCoefficients{F
             T_ambient = p.global_parameters.T_ambient
             # Calculate local variables
             velocity = e[1] / (density * area)
-            Re = density * velocity * diameter / dyn_visc()
+            Re = density * velocity * diameter / dyn_visc
             ## Momentum equation
             deltaP = friction(Re) * sign(velocity) * (velocity^2) # Pressure drop due to friction
             ## Energy equation
             @views convection = -(1 / dx) .* FVM.upwind(e[2:end], v_s[2], v_d[2], velocity)
-            @views source = htrans_coeff() .* (e[2:end] .- T_ambient)
+            @views source = htrans_coeff .* (e[2:end] .- T_ambient)
 
             # Physics implementation
             # e[1] : mass flow rate, algebraic constraint
@@ -117,18 +117,21 @@ function prosumer_deltaP(index::Integer)
 end
 
 
-function prosumer(pressure_control::Function, heatrate_control::Function, hydraulic_characteristic::Function)
+function prosumer(pressure_control::Function,
+        heatrate_control::Function,
+        hydraulic_characteristic::Function,
+        coeff_fns::TransportProperties)
     # Returns closure
-    function f!(de, e, v_s, v_d, p, t)
+    function f!(de, e, v_s, v_d, _, t)
         # Closure, implements physics for prosumer edges
         let
             deltaP = pressure_control
             heatrate = heatrate_control
             characteristic = hydraulic_characteristic
+            specific_heat::Float64 = coeff_fns.heat_capacity # Assuming spec. heat is constant
 
             # Calculate local variables
             massflow::Float64 = deltaP(t) |> characteristic # Assuming massflow is always in the direction of decreasing pressure
-            specific_heat::Float64 = p.TransportProperties.heat_capacity # Assuming spec. heat is constant
             inlet_T = massflow >= 0 ? v_s[2] : v_d[2] # Upwind convection
             outlet_T = heatrate(t) / (massflow * specific_heat) + inlet_T
 

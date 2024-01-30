@@ -3,7 +3,7 @@ module WrapperFunctions # submodule, included in DHG.jl
 import NetworkDynamics as nd
 import LinearAlgebra as la
 import ..DynamicalFunctions
-import ..TransportProperties.TransportCoefficients
+import ..Transport.TransportProperties
 import ..NetworkComponents
 
 export pipe_edge, prosumer_massflow, prosumer_deltaP, junction_node, fixed_node
@@ -26,24 +26,24 @@ function node_fn(_::NetworkComponents.FixedNode)
 end
 
 
-function edge_fn(_::Integer, edge::NetworkComponents.Pipe, transport_coeffs::TransportCoefficients)
+function edge_fn(_::Integer, edge::NetworkComponents.Pipe, transport_coeffs::TransportProperties)
     return pipe_edge(edge.diameter, edge.length, edge.dx, transport_coeffs)
 end
 
 
-function edge_fn(idx::Integer, _::NetworkComponents.MassflowProsumer, _::TransportCoefficients)
+function edge_fn(idx::Integer, _::NetworkComponents.MassflowProsumer, _::TransportProperties)
     return prosumer_massflow(idx)
 end
 
 
-function edge_fn(idx::Integer, _::NetworkComponents.PressureChangeProsumer, _::TransportCoefficients)
+function edge_fn(idx::Integer, _::NetworkComponents.PressureChangeProsumer, _::TransportProperties)
     return prosumer_deltaP(idx)
 end
 
 
 # Methods for each NetworkComponents struct
 
-function pipe_edge(diameter::Real, length::Real, dx::Real, coeff_fns::TransportCoefficients)
+function pipe_edge(diameter::Real, length::Real, dx::Real, coeff_fns::TransportProperties)
     # -> nd.ODEEdge
     # Edge with friction-induced pressure drop, temperature loss to surroundings
     # state 1 => mass flow rate
