@@ -100,6 +100,27 @@ function prosumer_deltaP(index::Integer) # -> nd.ODEEdge
 end
 
 
+function prosumer(pressure_control::Function,
+                    heatrate_control::Function,
+                    hydraulic_characteristic::Function,
+                    coeff_fns::TransportProperties
+    )
+    # -> nd.ODEEdge
+    # Prosumer edge, pressure change and heat transfer are functions of time
+    # state 1 => mass flow rate
+    # state 2 => inlet temperature
+    # state 3 => outlet temperature
+
+    # Calculate arguments to NetworkDynamics.ODEEdge
+    f = DynamicalFunctions.prosumer(pressure_control, heatrate_control, hydraulic_characteristic, coeff_fns)
+    dims = 3
+    diagonal = la.Diagonal([0 for _ in 1:dims]) # Diagonal of mass matrix
+    symbols = [:m, :T_in, :T_out]
+
+    return nd.ODEEdge(f=f, dim=dims, coupling=:directed, mass_matrix=diagonal, sym=symbols)
+end
+
+
 function junction_node() # -> nd.DirectedODEVertex
     # dims == 2
     # state 1 => node pressure
