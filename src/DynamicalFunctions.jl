@@ -117,6 +117,34 @@ function prosumer_deltaP(index::Integer)
 end
 
 
+function prosumer(pressure_control::Function, heatrate_control::Function, hydraulic_characteristic::Function)
+    # Returns closure
+    function f!(de, e, v_s, v_d, p, t)
+        # Closure, implements physics for prosumer edges
+        let
+            deltaP = pressure_control
+            heatrate = heatrate_control
+            characteristic = hydraulic_characteristic
+
+            # Calculate local variables
+            massflow::Float64 = deltaP(t) |> characteristic # Assuming massflow is always in the direction of decreasing pressure
+            specific_heat::Float64 = p.TransportProperties.heat_capacity # Assuming spec. heat is constant
+            inlet_T = massflow >= 0 ? v_s[2] : v_d[2] # Upwind convection
+            outlet_T = heatrate(t) / (massflow * specific_heat) + inlet_T
+
+            # Physics implementation
+            de[1] = massflow - e[1] # state 1 : massflow
+            de[2] = inlet_T - e[2] # state 2 : inlet temperature
+            de[3] = outlet_T - e[3] # state 3 : outlet temperature
+
+            return nothing
+        end # let block
+    end # f!(...)
+
+    return f!
+end
+
+
 # Dynamical functions for nodes
 
 ## No closures for node functions, as 'index' is not needed for node parameters
