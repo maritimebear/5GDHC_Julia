@@ -55,8 +55,8 @@ function pipe(diameter::Float64, dx::Float64, coeff_fns::TransportCoefficients{F
             # TODO: Implement pressure loss according to Cengel eqn. 8-21,
             #       Churchill or Swamee-Jain approximation for Darcy-Weisbach f
             de[1] = deltaP - (v_d[1] - v_s[1]) # Momentum equation
+            de[2:end] .= convection .+ source # Energy equation
 
-            @views de[2:end] .= convection .+ source
             return nothing
         end # let block
     end # f!(...)
