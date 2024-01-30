@@ -8,10 +8,10 @@ import ..FVM
 import ..Transport: TransportProperties
 
 
-# TODO: 'let' variables in closures for performance
 # TODO: Type annotations for local parameters? (eg. density::T where T is captured from outer function?)
 #           # Probably better to annotate p::ParameterStructs.Parameters{ValueType, IndexType} in function signature
 # TODO: Refactor junction!() with pipes to chain filter |> map |> sum
+# TODO: Cleanup unused code
 
 
 # Dynamical functions for edges
@@ -65,56 +65,56 @@ function pipe(diameter::Float64, dx::Float64, coeff_fns::TransportProperties{F1,
 end
 
 
-function prosumer_massflow(index::Integer)
-    # Returns closure with 'index' captured
-    function f!(de, e, v_s, _, p, _)
-        # Closure, implements physics for prosumer edges with fixed massflow
-        let
-            index = index
+# function prosumer_massflow(index::Integer)
+#     # Returns closure with 'index' captured
+#     function f!(de, e, v_s, _, p, _)
+#         # Closure, implements physics for prosumer edges with fixed massflow
+#         let
+#             index = index
 
-            # Prosumer edges must always have dims == 3
-            # de[1:3] == 0, algebraic constraint
+#             # Prosumer edges must always have dims == 3
+#             # de[1:3] == 0, algebraic constraint
 
-            # Get local parameters from Parameters struct
-            massflow = p.edge_parameters.massflow[index]
-            deltaT = p.edge_parameters.deltaT[index]
+#             # Get local parameters from Parameters struct
+#             massflow = p.edge_parameters.massflow[index]
+#             deltaT = p.edge_parameters.deltaT[index]
 
-            # Physics implementation
-            de[1] = massflow - e[1] # Fixed mass flow rate
-            de[2] = e[2] - v_s[2] # Upwind convection, edge start temp. == source node temp.
-            de[3] = deltaT - (e[3] - e[2]) # Fixed temperature change across edge
+#             # Physics implementation
+#             de[1] = massflow - e[1] # Fixed mass flow rate
+#             de[2] = e[2] - v_s[2] # Upwind convection, edge start temp. == source node temp.
+#             de[3] = deltaT - (e[3] - e[2]) # Fixed temperature change across edge
 
-            return nothing
-        end # let block
-    end # f!(...)
-    return f!
-end
+#             return nothing
+#         end # let block
+#     end # f!(...)
+#     return f!
+# end
 
 
-function prosumer_deltaP(index::Integer)
-    # Returns closure with 'index' captured
-    function f!(de, e, v_s, v_d, p, _)
-        # Closure, implements physics for prosumer edges with fixed pressure change
-        let
-            index = index
+# function prosumer_deltaP(index::Integer)
+#     # Returns closure with 'index' captured
+#     function f!(de, e, v_s, v_d, p, _)
+#         # Closure, implements physics for prosumer edges with fixed pressure change
+#         let
+#             index = index
 
-            # Prosumer edges must always have dims == 3
-            # de[1:3] == 0, algebraic constraint
+#             # Prosumer edges must always have dims == 3
+#             # de[1:3] == 0, algebraic constraint
 
-            # Get local parameters from Parameters struct
-            deltaP = p.edge_parameters.deltaP[index]
-            deltaT = p.edge_parameters.deltaT[index]
+#             # Get local parameters from Parameters struct
+#             deltaP = p.edge_parameters.deltaP[index]
+#             deltaT = p.edge_parameters.deltaT[index]
 
-            # Physics implementation
-            de[1] = deltaP - (v_d[1] - v_s[1]) # Fixed pressure difference
-            de[2] = e[2] - v_s[2] # Upwind convection, edge start temp. == source node temp.
-            de[3] = deltaT - (e[3] - e[2]) # Fixed temperature change across edge
+#             # Physics implementation
+#             de[1] = deltaP - (v_d[1] - v_s[1]) # Fixed pressure difference
+#             de[2] = e[2] - v_s[2] # Upwind convection, edge start temp. == source node temp.
+#             de[3] = deltaT - (e[3] - e[2]) # Fixed temperature change across edge
 
-            return nothing
-        end # let block
-    end # f!(...)
-    return f!
-end
+#             return nothing
+#         end # let block
+#     end # f!(...)
+#     return f!
+# end
 
 
 function prosumer(pressure_control::Function,

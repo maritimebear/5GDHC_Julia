@@ -14,31 +14,31 @@ export pipe_edge, prosumer_massflow, prosumer_deltaP, junction_node, fixed_node
 # TODO: StaticVector for symbols, but NetworkDynamics only takes Vector{Symbol}
 
 
-# Multiple dispatch on NetworkComponents structs
+# # Multiple dispatch on NetworkComponents structs
 
-function node_fn(_::NetworkComponents.Junction)
-    return junction_node()
-end
-
-
-function node_fn(_::NetworkComponents.FixedNode)
-    return fixed_node()
-end
+# function node_fn(_::NetworkComponents.Junction)
+#     return junction_node()
+# end
 
 
-function edge_fn(_::Integer, edge::NetworkComponents.Pipe, transport_coeffs::TransportProperties)
-    return pipe_edge(edge.diameter, edge.length, edge.dx, transport_coeffs)
-end
+# function node_fn(_::NetworkComponents.FixedNode)
+#     return fixed_node()
+# end
 
 
-function edge_fn(idx::Integer, _::NetworkComponents.MassflowProsumer, _::TransportProperties)
-    return prosumer_massflow(idx)
-end
+# function edge_fn(_::Integer, edge::NetworkComponents.Pipe, transport_coeffs::TransportProperties)
+#     return pipe_edge(edge.diameter, edge.length, edge.dx, transport_coeffs)
+# end
 
 
-function edge_fn(idx::Integer, _::NetworkComponents.PressureChangeProsumer, _::TransportProperties)
-    return prosumer_deltaP(idx)
-end
+# function edge_fn(idx::Integer, _::NetworkComponents.MassflowProsumer, _::TransportProperties)
+#     return prosumer_massflow(idx)
+# end
+
+
+# function edge_fn(idx::Integer, _::NetworkComponents.PressureChangeProsumer, _::TransportProperties)
+#     return prosumer_deltaP(idx)
+# end
 
 
 # Methods for each NetworkComponents struct
@@ -68,36 +68,36 @@ function pipe_edge(diameter::Real, length::Real, dx::Real, coeff_fns::TransportP
 end
 
 
-function prosumer_massflow(index::Integer) # -> nd.ODEEdge
-    # TODO: choose between (delta_p, delta_T) or (massflow_fixed, delta_T)
-    # Prosumer edges always have dims == 3
-    # state 1 => mass flow rate,
-    # state 2 => temperature at edge start
-    # state 3 => temperature at edge end
+# function prosumer_massflow(index::Integer) # -> nd.ODEEdge
+#     # TODO: choose between (delta_p, delta_T) or (massflow_fixed, delta_T)
+#     # Prosumer edges always have dims == 3
+#     # state 1 => mass flow rate,
+#     # state 2 => temperature at edge start
+#     # state 3 => temperature at edge end
 
-    f = DynamicalFunctions.prosumer_massflow(index)
-    dims = 3
-    diagonal = la.Diagonal([0 for _ in 1:dims]) # Diagonal of mass matrix
-    symbols = [:m, :T_start, :T_end]
+#     f = DynamicalFunctions.prosumer_massflow(index)
+#     dims = 3
+#     diagonal = la.Diagonal([0 for _ in 1:dims]) # Diagonal of mass matrix
+#     symbols = [:m, :T_start, :T_end]
 
-    return nd.ODEEdge(f=f, dim=dims, coupling=:directed, mass_matrix=diagonal, sym=symbols)
-end
+#     return nd.ODEEdge(f=f, dim=dims, coupling=:directed, mass_matrix=diagonal, sym=symbols)
+# end
 
 
-function prosumer_deltaP(index::Integer) # -> nd.ODEEdge
-    # TODO: choose between (delta_p, delta_T) or (massflow_fixed, delta_T)
-    # Prosumer edges always have dims == 3
-    # state 1 => mass flow rate,
-    # state 2 => temperature at edge start
-    # state 3 => temperature at edge end
+# function prosumer_deltaP(index::Integer) # -> nd.ODEEdge
+#     # TODO: choose between (delta_p, delta_T) or (massflow_fixed, delta_T)
+#     # Prosumer edges always have dims == 3
+#     # state 1 => mass flow rate,
+#     # state 2 => temperature at edge start
+#     # state 3 => temperature at edge end
 
-    f = DynamicalFunctions.prosumer_deltaP(index)
-    dims = 3
-    diagonal = la.Diagonal([0 for _ in 1:dims]) # Diagonal of mass matrix
-    symbols = [:deltaP, :T_start, :T_end]
+#     f = DynamicalFunctions.prosumer_deltaP(index)
+#     dims = 3
+#     diagonal = la.Diagonal([0 for _ in 1:dims]) # Diagonal of mass matrix
+#     symbols = [:deltaP, :T_start, :T_end]
 
-    return nd.ODEEdge(f=f, dim=dims, coupling=:directed, mass_matrix=diagonal, sym=symbols)
-end
+#     return nd.ODEEdge(f=f, dim=dims, coupling=:directed, mass_matrix=diagonal, sym=symbols)
+# end
 
 
 function prosumer(pressure_control::Function,
