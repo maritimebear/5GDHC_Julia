@@ -43,7 +43,7 @@ function pipe(diameter::Float64, dx::Float64, coeff_fns::TransportCoefficients{F
             velocity = e[1] / (density * area)
             Re = density * velocity * diameter / dyn_visc()
             ## Momentum equation
-            deltaP = friction(Re) * velocity * abs(velocity) # Pressure drop due to friction
+            deltaP = friction(Re) * sign(velocity) * (velocity^2) # Pressure drop due to friction
             ## Energy equation
             @views convection = -(1 / dx) .* FVM.upwind(e[2:end], v_s[2], v_d[2], velocity)
             @views source = htrans_coeff() .* (e[2:end] .- T_ambient)
