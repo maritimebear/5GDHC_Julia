@@ -2,15 +2,26 @@ import Graphs as gr
 import NetworkDynamics as nd
 import DifferentialEquations as de
 
+import GLMakie, GraphMakie
+
 include("../src/DHG.jl")
 import .DHG
 
-const plot_graph = false
-@static if plot_graph; import GLMakie, GraphMakie; end
 
 # Parameters
+# graph_definition = "./single_prosumer.gml"
 p_ref = 101325.0 # Pa
 T_fixed = 298.15 # K TODO: Remove T_fixed from ref_pressure node, calculate nodal temperature like junction nodes
+
+## Pipe parameters
+diameter = 1.0
+length = 1.0
+dx = 0.1
+
+## Prosumer parameters
+pressure_control = (t) ->
+heatrate_control = (t) ->
+hydraulic_characteristic = (deltaP) ->
 
 # Using material properties of water
 const density = 1e3 # kg/m^3
@@ -32,3 +43,15 @@ transport_coeffs = DHG.TransportProperties(dynamic_viscosity=dyn_visc, wall_fric
 
 params = DHG.Parameters(density=density, T_ambient=T_ambient, p_ref=p_ref, T_fixed=T_fixed)
 
+# Graph
+g = gr.simple_digraph(4)
+fig_graph = GraphMakie.graphplot(g; ilabels=repr.(1:gr.nv(g)), elabels=repr.(1:gr.ne(g)))
+
+nodes = [DHG.WrapperFunctions.junction_node() for _ in 1:3]
+push!(nodes, DHG.WrapperFunctions.fixed_node())
+
+edges = [DHG.WrapperFunctions.pipe_edge(diameter, length, dx, transport_coeffs) for _ in 1:3]
+pushfirst!(edges, DHG.WrapperFunctions.prosumer(pressure_control, heatrate_control,
+                                                hydraulic_characteristic, transport_coeffs))
+
+# nd_fn = (nodes, edges, g)
