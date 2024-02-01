@@ -4,7 +4,7 @@ import DifferentialEquations as de
 
 import GLMakie, GraphMakie
 
-include("../src/DHG.jl")
+include("../../src/DHG.jl")
 import .DHG
 
 
