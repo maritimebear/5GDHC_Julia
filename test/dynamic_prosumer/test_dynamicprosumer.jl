@@ -19,9 +19,23 @@ length = 1.0
 dx = 0.1
 
 ## Prosumer parameters
-pressure_control = (t) ->
-heatrate_control = (t) ->
-hydraulic_characteristic = (deltaP) ->
+function pressure_control(t)
+    # t in seconds, returns deltaP in Pa
+    if t < (9 * 60 * 60); return -5;
+    elseif t < (18 * 60 * 60); return -10;
+    else; return -5;
+    end
+end
+
+function heatrate_control(t)
+    # t in seconds, returns heat demand in W
+    if t < (9 * 60 * 60); return 100;
+    elseif t < (18 * 60 * 60); return 500;
+    else; return 100;
+    end
+end
+
+hydraulic_characteristic = (deltaP) -> (-deltaP)
 
 # Using material properties of water
 const density = 1e3 # kg/m^3
