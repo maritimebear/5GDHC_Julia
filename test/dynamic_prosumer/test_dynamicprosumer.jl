@@ -69,3 +69,9 @@ pushfirst!(edges, DHG.WrapperFunctions.prosumer(pressure_control, heatrate_contr
                                                 hydraulic_characteristic, transport_coeffs))
 
 nd_fn = nd.network_dynamics(nodes, edges, g)
+
+n_states = sum([mapreduce(x -> x.dim, +, v) for v in (nodes, edges)])
+initial_guess = ones(n_states)
+
+prob = de.ODEProblem(nd_fn, initial_guess, (0.0, 24 * 60 * 60), params)
+sol = de.solve(prob, de.Rodas5())
