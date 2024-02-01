@@ -44,14 +44,14 @@ transport_coeffs = DHG.TransportProperties(dynamic_viscosity=dyn_visc, wall_fric
 params = DHG.Parameters(density=density, T_ambient=T_ambient, p_ref=p_ref, T_fixed=T_fixed)
 
 # Graph
-g = gr.simple_digraph(4)
+g = gr.cycle_digraph(4)
 fig_graph = GraphMakie.graphplot(g; ilabels=repr.(1:gr.nv(g)), elabels=repr.(1:gr.ne(g)))
 
-nodes = [DHG.WrapperFunctions.junction_node() for _ in 1:3]
+nodes::Vector{nd.DirectedODEVertex} = [DHG.WrapperFunctions.junction_node() for _ in 1:3]
 push!(nodes, DHG.WrapperFunctions.fixed_node())
 
-edges = [DHG.WrapperFunctions.pipe_edge(diameter, length, dx, transport_coeffs) for _ in 1:3]
+edges::Vector{nd.ODEEdge} = [DHG.WrapperFunctions.pipe_edge(diameter, length, dx, transport_coeffs) for _ in 1:3]
 pushfirst!(edges, DHG.WrapperFunctions.prosumer(pressure_control, heatrate_control,
                                                 hydraulic_characteristic, transport_coeffs))
 
-# nd_fn = (nodes, edges, g)
+nd_fn = nd.network_dynamics(nodes, edges, g)
