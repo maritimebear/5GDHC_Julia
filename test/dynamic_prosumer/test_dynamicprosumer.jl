@@ -29,9 +29,9 @@ end
 
 function heatrate_control(t)
     # t in seconds, returns heat demand in W
-    if t < (9 * 60 * 60); return 100;
-    elseif t < (18 * 60 * 60); return 500;
-    else; return 100;
+    if t < (9 * 60 * 60); return -100;
+    elseif t < (18 * 60 * 60); return -500;
+    else; return -100;
     end
 end
 
