@@ -4,6 +4,7 @@ module DynamicalFunctions # submodule, included in DHG.jl
 export pipe, prosumer_massflow, prosumer_deltaP, junction!, fixed_node!
 
 
+import ..DHG
 import ..FVM
 import ..Transport: TransportProperties
 
@@ -69,49 +70,66 @@ end
 end
 
 
-@inline @inbounds function prosumerstate_fixdeltaP(index, de, e, v_s, v_d, p, t)
-    # -> Nothing
-    # Sets hydraulic state by fixing pressure change across prosumer,
-    # intended to be called by prosumer dynamic functions
+@generated function prosumerstate_hydraulic(type::Type{T}, index, de, e, v_s, v_d, p, t) where {T <: DHG.Prosumer}
 
-    control_input = p.prosumers.controls_hydraulic[index](t) # Pump speed
-    state_old = v_d[1] - v_s[1]
-    state_new = p.prosumers.char_hydraulics[index](e[1], control_input) # new deltaP
+    if type === DHG.Prosumer_PressureChange
+        state_old = :(v_d[1] - v_s[1])
+        control_input = :(p.prosumers.controls_hydraulic[index](t)) # Pump speed
+        state_new = :(p.prosumers.char_hydraulics[index](e[1], $control_input)) # new deltaP
+    else # type === DHG.Prosumer_Massflow
+        state_old = :(e[1])
+        state_new = :(p.prosumers.char_hydraulics[index](t)) # new mass flow rate
+    end
 
-    de[1] = state_new - state_old
-    return nothing
+    return :(de[1] = $state_new - $state_old)
 end
 
 
-@inline @inbounds function prosumerstate_fixmassflow(index, de, e, v_s, v_d, p, t)
-    # -> Nothing
-    # Sets hydraulic state by fixing mass flow rate across prosumer,
-    # intended to be called by prosumer dynamic functions
+# @inline @inbounds function prosumerstate_fixdeltaP(index, de, e, v_s, v_d, p, t)
+#     # -> Nothing
+#     # Sets hydraulic state by fixing pressure change across prosumer,
+#     # intended to be called by prosumer dynamic functions
 
-    # control_input = p.prosumers.controls_hydraulic[index](t) # Not implemented, model valve opening?
-    state_old = e[1]
-    state_new = p.prosumers.char_hydraulics[index](t) # new mass flow rate
+#     control_input = p.prosumers.controls_hydraulic[index](t) # Pump speed
+#     state_old = v_d[1] - v_s[1]
+#     state_new = p.prosumers.char_hydraulics[index](e[1], control_input) # new deltaP
 
-    de[1] = state_new - state_old
-    return nothing
-end
+#     de[1] = state_new - state_old
+#     return nothing
+# end
+
+
+# @inline @inbounds function prosumerstate_fixmassflow(index, de, e, v_s, v_d, p, t)
+#     # -> Nothing
+#     # Sets hydraulic state by fixing mass flow rate across prosumer,
+#     # intended to be called by prosumer dynamic functions
+
+#     # control_input = p.prosumers.controls_hydraulic[index](t) # Not implemented, model valve opening?
+#     state_old = e[1]
+#     state_new = p.prosumers.char_hydraulics[index](t) # new mass flow rate
+
+#     de[1] = state_new - state_old
+#     return nothing
+# end
+
 
 
 ## Each edge can have different parameters, so each edge function is a closure with an 'index' captured.
 ## 'index' is used to access corresponding values/functions from parameters 'p'
 
-function prosumer_deltaP(index::Integer)
+function prosumer(prosumer_type::Type{T}, index::Integer) where {T <: DHG.Prosumer}
     # Returns closure with 'index' captured
     function f!(de, e, v_s, v_d, p, t)
         # Closure, implements physics for prosumer edges with fixed pressure change
         let
+            prosumer_type = prosumer_type
             index = index
 
             # Prosumer edges must always have dims == 3
             # de[1:3] == 0, algebraic constraint
 
             # Physics implementation
-            prosumerstate_fixdeltaP(index, de, e, v_s, v_d, p, t) # Set pressure difference
+            prosumerstate_hydraulic(prosumer_type, index, de, e, v_s, v_d, p, t) # Set pressure difference
             prosumerstate_thermal(index, de, e, v_s, v_d, p, t) # Set prosumer outlet temperature
 
             return nothing

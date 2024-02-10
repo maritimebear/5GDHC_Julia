@@ -21,6 +21,13 @@ import .ParameterStruct: Parameters
 import .Transport: TransportProperties
 
 export Parameters, TransportProperties, parse_gml
+export Prosumer, Prosumer_PressureChange, Prosumer_Massflow
+
+
+abstract type Prosumer end
+struct Prosumer_PressureChange <: Prosumer end
+struct Prosumer_Massflow <: Prosumer end
+
 
 # export DHGStruct
 
