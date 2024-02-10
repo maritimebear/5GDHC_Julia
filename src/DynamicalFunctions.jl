@@ -14,7 +14,90 @@ import ..Transport: TransportProperties
 # TODO: Cleanup unused code
 
 
-# Dynamical functions for edges
+# Prosumer edges
+
+@inline function prosumer_outlet_T(thermal_power::Real, massflow::Real, temperature_in::Real, spec_heat::Real) 
+    # -> T_out = Q / (m * Cp) + T_in
+    # Requires Q, m, Cp and T_in to be known
+    return thermal_power / (massflow + spec_heat) + temperature_in
+end
+
+
+function PumpModel(massflow_ref1, deltaP_ref1, speed_ref1,
+                    massflow_ref2, deltaP_ref2, speed_ref2,
+                    fluid_density, nominal_speed
+                )
+    # Returns closure with reference values captured
+    # Following Licklederer et al, "Thermohydraulic model of Smart Thermal Grids with bidirectional power flow between prosumers", 2021, pages 4, 12
+    u_ref1 = speed_ref1 / nominal_speed
+    u_ref2 = speed_ref2 / nominal_speed 
+    vol_ref1 = massflow_ref1 / fluid_density
+    vol_ref2 = massflow_ref2 / fluid_density
+
+    c1 = (deltaP_ref1 - (u_ref1 / u_ref2)^2 * deltaP_ref2) / (vol_ref1^2 - (u_ref1 / u_ref2)^2 * vol_ref2^2)
+    c2 = (1.0 / u_ref2)^2 * (deltaP_ref2 - (vol_ref2^2 * c1))
+
+    function model(massflow, pump_speed)
+        # Returns pressure increase across pump
+        # Constant outer values in let-block for performance
+        let c1 = c1
+            c2 = c2
+            nominal_speed = nominal_speed
+            fluid_density = fluid_density
+            # Local variables
+            speed_ratio = pump_speed / nominal_speed
+            vol_rate = massflow / fluid_density
+            return (c1 * vol_rate^2) + (c2 * speed_ratio^2)
+        end
+    end
+
+    return model
+end
+
+
+@inline @inbounds function prosumerstate_thermal(index, de, e, v_s, v_d, p, t)
+    # -> Nothing
+    # Sets thermal state in de, intended to be called by prosumer dynamic functions
+
+    inlet_T = e[1] >= 0 ? v_s[1] : v_d[1] # Upwind convection
+    control_input = p.prosumers.controls_thermal[index](t) # thermal power
+    state_old = e[2] # Old outlet temperature
+    state_new = prosumer_outlet_T(control_input, e[1], inlet_T, p.transport_properties.spec_heat)
+
+    de[2] = state_new - state_old
+    return nothing
+end
+
+
+@inline @inbounds function prosumerstate_fixdeltaP(index, de, e, v_s, v_d, p, t)
+    # -> Nothing
+    # Sets hydraulic state by fixing pressure change across prosumer,
+    # intended to be called by prosumer dynamic functions
+
+    control_input = p.prosumers.controls_hydraulic[index](t) # Pump speed
+    state_old = v_d[1] - v_s[1]
+    state_new = p.prosumers.char_hydraulics[index](e[1], control_input) # new deltaP
+
+    de[1] = state_new - state_old
+    return nothing
+end
+
+
+@inline @inbounds function prosumerstate_fixmassflow(index, de, e, v_s, v_d, p, t)
+    # -> Nothing
+    # Sets hydraulic state by fixing mass flow rate across prosumer,
+    # intended to be called by prosumer dynamic functions
+
+    # control_input = p.prosumers.controls_hydraulic[index](t) # Not implemented, model valve opening?
+    state_old = e[1]
+    state_new = p.prosumers.char_hydraulics[index](t) # new mass flow rate
+
+    de[1] = state_new - state_old
+    return nothing
+end
+
+
+# Pipe edges
 
 ## Each edge can have different parameters, so each edge function is a closure with an 'index' captured.
 ## 'index' is used to access corresponding values from ParameterStructs.EdgeParameters.
