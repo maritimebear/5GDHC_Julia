@@ -97,10 +97,52 @@ end
 end
 
 
-# Pipe edges
-
 ## Each edge can have different parameters, so each edge function is a closure with an 'index' captured.
-## 'index' is used to access corresponding values from ParameterStructs.EdgeParameters.
+## 'index' is used to access corresponding values/functions from parameters 'p'
+
+function prosumer_deltaP(index::Integer)
+    # Returns closure with 'index' captured
+    function f!(de, e, v_s, v_d, p, t)
+        # Closure, implements physics for prosumer edges with fixed pressure change
+        let
+            index = index
+
+            # Prosumer edges must always have dims == 3
+            # de[1:3] == 0, algebraic constraint
+
+            # Physics implementation
+            prosumerstate_fixdeltaP(index, de, e, v_s, v_d, p, t) # Set pressure difference
+            prosumerstate_thermal(index, de, e, v_s, v_d, p, t) # Set prosumer outlet temperature
+
+            return nothing
+        end # let block
+    end # f!(...)
+    return f!
+end
+
+
+function prosumer_massflow(index::Integer)
+    # Returns closure with 'index' captured
+    function f!(de, e, v_s, v_d, p, t)
+        # Closure, implements physics for prosumer edges with fixed pressure change
+        let
+            index = index
+
+            # Prosumer edges must always have dims == 3
+            # de[1:3] == 0, algebraic constraint
+
+            # Physics implementation
+            prosumerstate_fixmassflow(index, de, e, v_s, v_d, p, t) # Set mass flow rate
+            prosumerstate_thermal(index, de, e, v_s, v_d, p, t) # Set prosumer outlet temperature
+
+            return nothing
+        end # let block
+    end # f!(...)
+    return f!
+end
+
+
+# Pipe edges
 
 function pipe(diameter::Float64, dx::Float64, coeff_fns::TransportProperties{F1, F2, F3, F4}) where {F1, F2, F3, F4}
     # Returns closure with 'index' and transport property functions captured
