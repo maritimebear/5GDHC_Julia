@@ -189,6 +189,45 @@ function pipe(diameter::Float64, dx::Float64, coeff_fns::TransportProperties{F1,
     return f!
 end
 
+# Dynamical functions for nodes
+
+## No closures for node functions, as 'index' is not needed for node parameters
+
+function junction!(dv, v, edges_in, edges_out, _, _)
+    # DirectedODEVertex, dims == 2
+    # dv[1:2] = 0.0
+
+    # Calculate node temperature from incoming and outgoing edges
+    # Assumption: edge state 1 => mass flow, edge states [2:end] => temperatures in finite-volume cells
+    enthalpy_in = 0.0
+    massflow_out = 0.0
+
+    enthalpy_in += sum(map(e -> e[1] * e[end], filter(e -> e[1] > 0, edges_in)))
+        # for each edge in, if massflow is +ve (ie. massflow into node),
+        #   enthalpy_in += massflow * temperature at edge-node interface
+    enthalpy_in += sum(map(e -> -e[1] * e[2], filter(e -> e[1] < 0, edges_out)))
+        # for each edge out, if massflow is -ve (ie. massflow into node, since massflow direction is defined wrt. edge direction),
+        #   enthalpy_in += (-massflow) * temperature at edge-node interface, - since massflow is -ve
+
+    massflow_out += sum(map(e -> e[1], filter(e -> e[1] > 0, edges_out)))
+    massflow_out += sum(map(e -> -e[1], filter(e -> e[1] < 0, edges_in)))
+
+    # Physics implementation
+    dv[1] = sum(map(e -> e[1], edges_in)) - sum(map(e -> e[1], edges_out)) # Mass conservation
+    dv[2] = v[2] - (enthalpy_in / massflow_out) # node_temp = enthalpy_in / massflow_out
+
+    return nothing
+end
+
+function fixed_node!(dv, v, _, _, p, _)
+    # DirectedODEVertex, dims == 2
+    # dv[1:2] = 0.0
+
+    # Physics implementation
+    dv[1] = v[1] - p.p_ref
+    dv[2] = v[2] - p.T_fixed # TODO: Remove T_fixed, calculate nodal temperature like junction nodes
+    return nothing
+end
 
 # function prosumer_massflow(index::Integer)
 #     # Returns closure with 'index' captured
@@ -242,75 +281,34 @@ end
 # end
 
 
-function prosumer(pressure_control::Function,
-        heatrate_control::Function,
-        hydraulic_characteristic::Function,
-        coeff_fns::TransportProperties)
-    # Returns closure
-    function f!(de, e, v_s, v_d, _, t)
-        # Closure, implements physics for prosumer edges
-        let
-            deltaP = pressure_control
-            heatrate = heatrate_control
-            characteristic = hydraulic_characteristic
-            specific_heat::Float64 = coeff_fns.heat_capacity # Assuming spec. heat is constant
+# function prosumer(pressure_control::Function,
+#         heatrate_control::Function,
+#         hydraulic_characteristic::Function,
+#         coeff_fns::TransportProperties)
+#     # Returns closure
+#     function f!(de, e, v_s, v_d, _, t)
+#         # Closure, implements physics for prosumer edges
+#         let
+#             deltaP = pressure_control
+#             heatrate = heatrate_control
+#             characteristic = hydraulic_characteristic
+#             specific_heat::Float64 = coeff_fns.heat_capacity # Assuming spec. heat is constant
 
-            # Calculate local variables
-            massflow::Float64 = deltaP(t) |> characteristic # Assuming massflow is always in the direction of decreasing pressure
-            inlet_T = massflow >= 0 ? v_s[2] : v_d[2] # Upwind convection
-            outlet_T = heatrate(t) / (massflow * specific_heat) + inlet_T
+#             # Calculate local variables
+#             massflow::Float64 = deltaP(t) |> characteristic # Assuming massflow is always in the direction of decreasing pressure
+#             inlet_T = massflow >= 0 ? v_s[2] : v_d[2] # Upwind convection
+#             outlet_T = heatrate(t) / (massflow * specific_heat) + inlet_T
 
-            # Physics implementation
-            de[1] = massflow - e[1] # state 1 : massflow
-            de[2] = inlet_T - e[2] # state 2 : inlet temperature
-            de[3] = outlet_T - e[3] # state 3 : outlet temperature
+#             # Physics implementation
+#             de[1] = massflow - e[1] # state 1 : massflow
+#             de[2] = inlet_T - e[2] # state 2 : inlet temperature
+#             de[3] = outlet_T - e[3] # state 3 : outlet temperature
 
-            return nothing
-        end # let block
-    end # f!(...)
+#             return nothing
+#         end # let block
+#     end # f!(...)
 
-    return f!
-end
+#     return f!
+# end
 
-
-# Dynamical functions for nodes
-
-## No closures for node functions, as 'index' is not needed for node parameters
-
-function junction!(dv, v, edges_in, edges_out, _, _)
-    # DirectedODEVertex, dims == 2
-    # dv[1:2] = 0.0
-
-    # Calculate node temperature from incoming and outgoing edges
-    # Assumption: edge state 1 => mass flow, edge states [2:end] => temperatures in finite-volume cells
-    enthalpy_in = 0.0
-    massflow_out = 0.0
-
-    enthalpy_in += sum(map(e -> e[1] * e[end], filter(e -> e[1] > 0, edges_in)))
-        # for each edge in, if massflow is +ve (ie. massflow into node),
-        #   enthalpy_in += massflow * temperature at edge-node interface
-    enthalpy_in += sum(map(e -> -e[1] * e[2], filter(e -> e[1] < 0, edges_out)))
-        # for each edge out, if massflow is -ve (ie. massflow into node, since massflow direction is defined wrt. edge direction),
-        #   enthalpy_in += (-massflow) * temperature at edge-node interface, - since massflow is -ve
-
-    massflow_out += sum(map(e -> e[1], filter(e -> e[1] > 0, edges_out)))
-    massflow_out += sum(map(e -> -e[1], filter(e -> e[1] < 0, edges_in)))
-
-    # Physics implementation
-    dv[1] = sum(map(e -> e[1], edges_in)) - sum(map(e -> e[1], edges_out)) # Mass conservation
-    dv[2] = v[2] - (enthalpy_in / massflow_out) # node_temp = enthalpy_in / massflow_out
-
-    return nothing
-end
-
-function fixed_node!(dv, v, _, _, p, _)
-    # DirectedODEVertex, dims == 2
-    # dv[1:2] = 0.0
-
-    # Physics implementation
-    dv[1] = v[1] - p.p_ref
-    dv[2] = v[2] - p.T_fixed # TODO: Remove T_fixed, calculate nodal temperature like junction nodes
-    return nothing
-end
-
-end # (sub)module
+end # module
