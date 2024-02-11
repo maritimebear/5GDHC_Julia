@@ -17,13 +17,13 @@ Base.@kwdef struct ProsumerParameters{IndexType <: Integer}
 end
 
 
-Base.@kwdef mutable struct Parameters{IndexType = Int32} where {IndexType <: Integer}
+Base.@kwdef mutable struct Parameters
     # mutable struct to allow modifications via callbacks
     density::Float64
     T_ambient::Float64
     p_ref::Float64
     T_fixed::Float64
-    prosumers::ProsumerParameters{IndexType}
+    prosumers::ProsumerParameters{Int64}
 end
 
 
