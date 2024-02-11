@@ -55,14 +55,14 @@ function PumpModel(massflow_ref1, deltaP_ref1, speed_ref1,
 end
 
 
-@inline @inbounds function prosumerstate_thermal(index, de, e, v_s, v_d, p, t)
+@inline @inbounds function prosumerstate_thermal(spec_heat, index, de, e, v_s, v_d, p, t)
     # -> Nothing
     # Sets thermal state in de, intended to be called by prosumer dynamic functions
 
     inlet_T = e[1] >= 0 ? v_s[1] : v_d[1] # Upwind convection
     control_input = p.prosumers.controls.thermal[index](t) # thermal power
     state_old = e[2] # Old outlet temperature
-    state_new = prosumer_outlet_T(control_input, e[1], inlet_T, p.transport_properties.spec_heat)
+    state_new = prosumer_outlet_T(control_input, e[1], inlet_T, spec_heat)
 
     de[2] = state_new - state_old
     return nothing
@@ -100,19 +100,20 @@ end
 ## Each edge can have different parameters, so each edge function is a closure with an 'index' captured.
 ## 'index' is used to access corresponding values/functions from parameters 'p'
 
-function prosumer_deltaP(index::Integer)
-    # Returns closure with 'index' captured
+function prosumer_deltaP(index::Integer, coeff_fns::TransportProperties{F1, F2, F3, F4}) where {F1, F2, F3, F4}
+    # Returns closure with constants captured
     function f!(de, e, v_s, v_d, p, t)
         # Closure, implements physics for prosumer edges with fixed pressure change
         let
             index = index
+            spec_heat = coeff_fns.heat_capacity
 
             # Prosumer edges must always have dims == 3
             # de[1:3] == 0, algebraic constraint
 
             # Physics implementation
             prosumerstate_fixdeltaP(index, de, e, v_s, v_d, p, t) # Set pressure difference
-            prosumerstate_thermal(index, de, e, v_s, v_d, p, t) # Set prosumer outlet temperature
+            prosumerstate_thermal(spec_heat, index, de, e, v_s, v_d, p, t) # Set prosumer outlet temperature
 
             return nothing
         end # let block
@@ -121,19 +122,20 @@ function prosumer_deltaP(index::Integer)
 end
 
 
-function prosumer_massflow(index::Integer)
-    # Returns closure with 'index' captured
+function prosumer_massflow(index::Integer, coeff_fns::TransportProperties{F1, F2, F3, F4}) where {F1, F2, F3, F4}
+    # Returns closure with constants captured
     function f!(de, e, v_s, v_d, p, t)
         # Closure, implements physics for prosumer edges with fixed pressure change
         let
             index = index
+            spec_heat = coeff_fns.heat_capacity
 
             # Prosumer edges must always have dims == 3
             # de[1:3] == 0, algebraic constraint
 
             # Physics implementation
             prosumerstate_fixmassflow(index, de, e, v_s, v_d, p, t) # Set mass flow rate
-            prosumerstate_thermal(index, de, e, v_s, v_d, p, t) # Set prosumer outlet temperature
+            prosumerstate_thermal(spec_heat, index, de, e, v_s, v_d, p, t) # Set prosumer outlet temperature
 
             return nothing
         end # let block
