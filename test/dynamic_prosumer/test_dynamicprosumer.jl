@@ -55,23 +55,32 @@ heat_transfer::Float64 = -h_wall / (density * heat_capacity) # TODO: Why is this
 transport_coeffs = DHG.TransportProperties(dynamic_viscosity=dyn_visc, wall_friction=friction,
                                              heat_capacity=heat_capacity, heat_transfer=heat_transfer)
 
-params = DHG.Parameters(density=density, T_ambient=T_ambient, p_ref=p_ref, T_fixed=T_fixed)
-
 # Graph
-g = gr.cycle_digraph(4)
+g = gr.SimpleDiGraph(4)
+edges_g = [(1 => 2), # producer
+           (1 => 3), # hot pipe
+           (2 => 4), # cold pipe
+           (3 => 4), # consumer
+          ]
+for e in edges_g
+    gr.add_edge!(g, e.first, e.second) ? nothing : throw("Failed to add edge $e")
+end
+
 fig_graph = GraphMakie.graphplot(g; ilabels=repr.(1:gr.nv(g)), elabels=repr.(1:gr.ne(g)))
 
-nodes::Vector{nd.DirectedODEVertex} = [DHG.WrapperFunctions.junction_node() for _ in 1:3]
-push!(nodes, DHG.WrapperFunctions.fixed_node())
+# params = DHG.Parameters(density=density, T_ambient=T_ambient, p_ref=p_ref, T_fixed=T_fixed)
 
-edges::Vector{nd.ODEEdge} = [DHG.WrapperFunctions.pipe_edge(diameter, length, dx, transport_coeffs) for _ in 1:3]
-pushfirst!(edges, DHG.WrapperFunctions.prosumer(pressure_control, heatrate_control,
-                                                hydraulic_characteristic, transport_coeffs))
+# nodes::Vector{nd.DirectedODEVertex} = [DHG.WrapperFunctions.junction_node() for _ in 1:3]
+# push!(nodes, DHG.WrapperFunctions.fixed_node())
 
-nd_fn = nd.network_dynamics(nodes, edges, g)
+# edges::Vector{nd.ODEEdge} = [DHG.WrapperFunctions.pipe_edge(diameter, length, dx, transport_coeffs) for _ in 1:3]
+# pushfirst!(edges, DHG.WrapperFunctions.prosumer(pressure_control, heatrate_control,
+#                                                 hydraulic_characteristic, transport_coeffs))
 
-n_states = sum([mapreduce(x -> x.dim, +, v) for v in (nodes, edges)])
-initial_guess = ones(n_states)
+# nd_fn = nd.network_dynamics(nodes, edges, g)
 
-prob = de.ODEProblem(nd_fn, initial_guess, (0.0, 24 * 60 * 60), params)
-sol = de.solve(prob, de.Rodas5())
+# n_states = sum([mapreduce(x -> x.dim, +, v) for v in (nodes, edges)])
+# initial_guess = ones(n_states)
+
+# prob = de.ODEProblem(nd_fn, initial_guess, (0.0, 24 * 60 * 60), params)
+# sol = de.solve(prob, de.Rodas5())
