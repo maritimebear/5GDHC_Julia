@@ -73,9 +73,20 @@ function producer_thmpwr(t)
     end
 end
 
+# function consumer_massflow(t) # massflow(t)
+#     if t < (9 * 60 * 60); return 1;
+#     elseif t < (18 * 60 * 60); return 2;
+#     else; return 1;
+#     end
+# end
+# consumer_hydchar = (x, _) -> (x) # Forward control input
+
+
 producer_hydctrl = hydctrl_pump(pump_nominalspeed)
 producer_hydchar = DHG.DynamicalFunctions.PumpModel(pump_ref1..., pump_ref2...,
                                                     density, pump_nominalspeed)
+
+
 
 # Reference node
 p_ref = 101325.0 # Pa
