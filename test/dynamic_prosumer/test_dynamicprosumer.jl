@@ -9,34 +9,21 @@ import .DHG
 
 
 # Parameters
-# graph_definition = "./single_prosumer.gml"
-p_ref = 101325.0 # Pa
-T_fixed = 298.15 # K TODO: Remove T_fixed from ref_pressure node, calculate nodal temperature like junction nodes
 
-## Pipe parameters
-diameter = 1.0
-length = 1.0
-dx = 0.1
-
-## Prosumer parameters
-function pressure_control(t)
-    # t in seconds, returns deltaP in Pa
-    if t < (9 * 60 * 60); return -5;
-    elseif t < (18 * 60 * 60); return -10;
-    else; return -5;
-    end
+# Graph
+g = gr.SimpleDiGraph(4)
+edges_g = [(1 => 2), # producer
+           (1 => 3), # hot pipe
+           (2 => 4), # cold pipe
+           (3 => 4), # consumer
+          ]
+for e in edges_g
+    gr.add_edge!(g, e.first, e.second) ? nothing : throw("Failed to add edge $e")
 end
 
-function heatrate_control(t)
-    # t in seconds, returns heat demand in W
-    if t < (9 * 60 * 60); return -100;
-    elseif t < (18 * 60 * 60); return -500;
-    else; return -100;
-    end
-end
+fig_graph = GraphMakie.graphplot(g; ilabels=repr.(1:gr.nv(g)), elabels=repr.(1:gr.ne(g)))
 
-hydraulic_characteristic = (deltaP) -> (-deltaP)
-
+# Material properties
 # Using material properties of water
 const density = 1e3 # kg/m^3
 T_ambient::Float64 = 273.15 + 10.0 # kelvin
@@ -55,18 +42,45 @@ heat_transfer::Float64 = -h_wall / (density * heat_capacity) # TODO: Why is this
 transport_coeffs = DHG.TransportProperties(dynamic_viscosity=dyn_visc, wall_friction=friction,
                                              heat_capacity=heat_capacity, heat_transfer=heat_transfer)
 
-# Graph
-g = gr.SimpleDiGraph(4)
-edges_g = [(1 => 2), # producer
-           (1 => 3), # hot pipe
-           (2 => 4), # cold pipe
-           (3 => 4), # consumer
-          ]
-for e in edges_g
-    gr.add_edge!(g, e.first, e.second) ? nothing : throw("Failed to add edge $e")
+## Pipe parameters
+diameter = 1.0
+length = 1.0
+dx = 0.1
+
+## Prosumer parameters
+pump_nominalspeed = 4100.0 # rpm
+pump_ref1 = (0.0, 40221.0, pump_nominalspeed) # (massflow [kg/s], deltaP [Pa], speed [rpm])
+pump_ref2 = (55.33 * density, 0.0, pump_nominalspeed)
+
+function hydctrl_pump(nominal_speed)
+    let n = nominal_speed
+        function pumpspeed(t)
+            # t in seconds, returns pump speed in rpm
+            if t < (9 * 60 * 60); return 1 * n;
+            elseif t < (18 * 60 * 60); return 2 * n;
+            else; return 1 * n;
+            end
+        end
+    end
+    return pumpspeed
 end
 
-fig_graph = GraphMakie.graphplot(g; ilabels=repr.(1:gr.nv(g)), elabels=repr.(1:gr.ne(g)))
+function producer_thmpwr(t)
+    # t in seconds, returns heat demand in W
+    if t < (9 * 60 * 60); return 1e3;
+    elseif t < (18 * 60 * 60); return 5e3;
+    else; return 1e3;
+    end
+end
+
+producer_hydctrl = hydctrl_pump(pump_nominalspeed)
+producer_hydchar = DHG.DynamicalFunctions.PumpModel(pump_ref1..., pump_ref2...,
+                                                    density, pump_nominalspeed)
+
+# Reference node
+p_ref = 101325.0 # Pa
+T_fixed = 298.15 # K TODO: Remove T_fixed from ref_pressure node, calculate nodal temperature like junction nodes
+
 
 # params = DHG.Parameters(density=density, T_ambient=T_ambient, p_ref=p_ref, T_fixed=T_fixed)
 
