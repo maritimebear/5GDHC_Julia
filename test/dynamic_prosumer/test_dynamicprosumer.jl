@@ -100,17 +100,16 @@ prosumer_params = DHG.ParameterStruct.ProsumerParameters(hydraulic_controls, the
 params = DHG.ParameterStruct.Parameters(density, T_ambient, p_ref, T_fixed, prosumer_params)
 
 
-# nodes::Vector{nd.DirectedODEVertex} = [DHG.WrapperFunctions.junction_node() for _ in 1:3]
-# push!(nodes, DHG.WrapperFunctions.fixed_node())
+nodes::Vector{nd.DirectedODEVertex} = [DHG.WrapperFunctions.junction_node() for _ in 1:3]
+push!(nodes, DHG.WrapperFunctions.fixed_node())
 
-# edges::Vector{nd.ODEEdge} = [DHG.WrapperFunctions.pipe_edge(diameter, length, dx, transport_coeffs) for _ in 1:3]
-# pushfirst!(edges, DHG.WrapperFunctions.prosumer(pressure_control, heatrate_control,
-#                                                 hydraulic_characteristic, transport_coeffs))
+edges::Vector{nd.ODEEdge} = [DHG.WrapperFunctions.pipe_edge(diameter, length, dx, transport_coeffs) for _ in 1:3]
+pushfirst!(edges, DHG.WrapperFunctions.prosumer_deltaP(1, transport_coeffs)) # (index, coeff_fns)
 
-# nd_fn = nd.network_dynamics(nodes, edges, g)
+nd_fn = nd.network_dynamics(nodes, edges, g)
 
-# n_states = sum([mapreduce(x -> x.dim, +, v) for v in (nodes, edges)])
-# initial_guess = ones(n_states)
+n_states = sum([mapreduce(x -> x.dim, +, v) for v in (nodes, edges)])
+initial_guess = ones(n_states)
 
-# prob = de.ODEProblem(nd_fn, initial_guess, (0.0, 24 * 60 * 60), params)
-# sol = de.solve(prob, de.Rodas5())
+prob = de.ODEProblem(nd_fn, initial_guess, (0.0, 24 * 60 * 60), params)
+sol = de.solve(prob, de.Rodas5())
