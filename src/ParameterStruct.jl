@@ -1,13 +1,30 @@
 module ParameterStruct
 
-export Parameters
+import SparseArrays as sp
 
-Base.@kwdef mutable struct Parameters
+export ProsumerPair, ProsumerParameters, Parameters
+
+
+Base.@kwdef struct ProsumerPair{IndexType <: Integer}
+    hydraulic::sp.SparseVector{Function, IndexType}
+    thermal::sp.SparseVector{Function, IndexType}
+end
+
+
+Base.@kwdef struct ProsumerParameters{IndexType <: Integer}
+    controls::ProsumerPair{IndexType}
+    characteristics::ProsumerPair{IndexType}
+end
+
+
+Base.@kwdef mutable struct Parameters{IndexType = Int32} where {IndexType <: Integer}
     # mutable struct to allow modifications via callbacks
     density::Float64
     T_ambient::Float64
     p_ref::Float64
     T_fixed::Float64
+    prosumers::ProsumerParameters{IndexType}
 end
 
-end
+
+end # module
