@@ -53,8 +53,8 @@ pump_ref1 = (0.0, 40221.0, pump_nominalspeed) # (massflow [kg/s], deltaP [Pa], s
 pump_ref2 = (55.33 * density, 0.0, pump_nominalspeed)
 
 function hydctrl_pump(nominal_speed)
-    let n = nominal_speed
-        function pumpspeed(t)
+    function pumpspeed(t)
+        let n = nominal_speed
             # t in seconds, returns pump speed in rpm
             if t < (9 * 60 * 60); return 1 * n;
             elseif t < (18 * 60 * 60); return 2 * n;
