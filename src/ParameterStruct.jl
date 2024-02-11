@@ -2,18 +2,13 @@ module ParameterStruct
 
 import SparseArrays as sp
 
-export ProsumerPair, ProsumerParameters, Parameters
+export ProsumerParameters, Parameters
 
 
-Base.@kwdef struct ProsumerPair{IndexType <: Integer}
-    hydraulic::sp.SparseVector{Function, IndexType}
-    thermal::sp.SparseVector{Function, IndexType}
-end
-
-
-Base.@kwdef struct ProsumerParameters{IndexType <: Integer}
-    controls::ProsumerPair{IndexType}
-    characteristics::ProsumerPair{IndexType}
+Base.@kwdef struct ProsumerParameters{SparseVec1, SparseVec2, SparseVec3}
+    controls_hydraulic::SparseVec1
+    controls_thermal::SparseVec2
+    characteristics_hydraulic::SparseVec3
 end
 
 
@@ -23,7 +18,7 @@ Base.@kwdef mutable struct Parameters
     T_ambient::Float64
     p_ref::Float64
     T_fixed::Float64
-    prosumers::ProsumerParameters{Int64}
+    prosumers::ProsumerParameters
 end
 
 

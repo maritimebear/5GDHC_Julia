@@ -1,6 +1,7 @@
 import Graphs as gr
 import NetworkDynamics as nd
 import DifferentialEquations as de
+import SparseArrays as sp
 
 import GLMakie, GraphMakie
 
@@ -86,14 +87,18 @@ producer_hydctrl = hydctrl_pump(pump_nominalspeed)
 producer_hydchar = DHG.DynamicalFunctions.PumpModel(pump_ref1..., pump_ref2...,
                                                     density, pump_nominalspeed)
 
-
+hydraulic_controls = sp.SparseVector(4, [1], [producer_hydctrl]) # (size, index, value)
+thermal_controls = sp.SparseVector(4, [1], [producer_thmpwr])
+hydraulic_characteristics = sp.SparseVector(4, [1], [producer_hydchar])
 
 # Reference node
 p_ref = 101325.0 # Pa
 T_fixed = 298.15 # K TODO: Remove T_fixed from ref_pressure node, calculate nodal temperature like junction nodes
 
 
-# params = DHG.Parameters(density=density, T_ambient=T_ambient, p_ref=p_ref, T_fixed=T_fixed)
+prosumer_params = DHG.ParameterStruct.ProsumerParameters(hydraulic_controls, thermal_controls, hydraulic_characteristics)
+params = DHG.ParameterStruct.Parameters(density, T_ambient, p_ref, T_fixed, prosumer_params)
+
 
 # nodes::Vector{nd.DirectedODEVertex} = [DHG.WrapperFunctions.junction_node() for _ in 1:3]
 # push!(nodes, DHG.WrapperFunctions.fixed_node())
