@@ -1,10 +1,8 @@
 module DynamicalFunctions # submodule, included in DHG.jl
 # Dynamical functions for NetworkDynamics ODEEdge and DirectedODEVertex
 
-export pipe, prosumer_massflow, prosumer_deltaP, junction!, fixed_node!
+export pipe, junction!, fixed_node!
 
-
-import ..DHG
 import ..FVM
 import ..Transport: TransportProperties
 
@@ -16,6 +14,11 @@ import ..Transport: TransportProperties
 
 
 # Prosumer edges
+
+abstract type Prosumer end
+struct Prosumer_PressureChange <: Prosumer end
+struct Prosumer_Massflow <: Prosumer end
+
 
 @inline function prosumer_outlet_T(thermal_power::Real, massflow::Real, temperature_in::Real, spec_heat::Real) 
     # -> T_out = Q / (m * Cp) + T_in
@@ -70,7 +73,7 @@ end
 end
 
 
-@generated function prosumerstate_hydraulic(type::Type{T}, index, de, e, v_s, v_d, p, t) where {T <: DHG.Prosumer}
+@generated function prosumerstate_hydraulic(type::Type{T}, index, de, e, v_s, v_d, p, t) where {T <: Prosumer}
 
     if type === DHG.Prosumer_PressureChange
         state_old = :(v_d[1] - v_s[1])
@@ -117,7 +120,7 @@ end
 ## Each edge can have different parameters, so each edge function is a closure with an 'index' captured.
 ## 'index' is used to access corresponding values/functions from parameters 'p'
 
-function prosumer(prosumer_type::Type{T}, index::Integer) where {T <: DHG.Prosumer}
+function prosumer(prosumer_type::Type{T}, index::Integer) where {T <: Prosumer}
     # Returns closure with 'index' captured
     function f!(de, e, v_s, v_d, p, t)
         # Closure, implements physics for prosumer edges with fixed pressure change
