@@ -6,6 +6,8 @@ import ..Transport: TransportProperties
 import ..NetworkComponents as nc
 import ..FVM
 
+export prosumer_outlet_T, prosumer_deltaP, prosumer_massflow, pipe, node_temperature, junction!, reference_node
+
 
 @inline function prosumer_outlet_T(thermal_power::Real, massflow::Real, temperature_in::Real, spec_heat::Real) 
     # -> T_out = Q / (m * Cp) + T_in
@@ -14,7 +16,7 @@ import ..FVM
 end
 
 
-function prosumer(prosumerstruct::nc.PressureChange, transport_coeffs::TransportProperties)
+function prosumer_deltaP(prosumerstruct::nc.PressureChange, transport_coeffs::TransportProperties)
     # Returns closure with constants captured
     function f!(de, e, v_s, v_d, _, t)
         # Closure, implements physics for pressure change prosumer
@@ -45,7 +47,7 @@ function prosumer(prosumerstruct::nc.PressureChange, transport_coeffs::Transport
 end
 
 
-function prosumer(prosumerstruct::nc.Massflow, transport_coeffs::TransportProperties)
+function prosumer_massflow(prosumerstruct::nc.Massflow, transport_coeffs::TransportProperties)
     # Returns closure with constants captured
     function f!(de, e, v_s, v_d, _, t)
         # Closure, implements physics for massflow prosumer
@@ -112,4 +114,52 @@ function pipe(pipestruct::nc.Pipe, transport_coeffs::TransportProperties)
 end
 
 
+function node_temperature(edges_in, edges_out)
+    # Calculate node temperature after mixing of incoming flows
+    # Assumption: edge state 1 => mass flow, edge states [2:end] => temperatures in finite-volume cells
+
+    enthalpy_in = 0.0
+    massflow_out = 0.0
+
+    enthalpy_in += sum(map(e -> e[1] * e[end], filter(e -> e[1] > 0, edges_in)))
+        # for each edge in, if massflow is +ve (ie. massflow into node),
+        #   enthalpy_in += massflow * temperature at edge-node interface
+    enthalpy_in += sum(map(e -> -e[1] * e[2], filter(e -> e[1] < 0, edges_out)))
+        # for each edge out, if massflow is -ve (ie. massflow into node, since massflow direction is defined wrt. edge direction),
+        #   enthalpy_in += (-massflow) * temperature at edge-node interface, - since massflow is -ve
+
+    massflow_out += sum(map(e -> e[1], filter(e -> e[1] > 0, edges_out)))
+    massflow_out += sum(map(e -> -e[1], filter(e -> e[1] < 0, edges_in)))
+
+    return enthalpy_in / massflow_out
+end
+
+
+function junction!(dv, v, edges_in, edges_out, _, _)
+    # DirectedODEVertex, dims == 2
+    # dv[1:2] = 0.0
+
+    # Physics implementation
+    dv[1] = sum(map(e -> e[1], edges_in)) - sum(map(e -> e[1], edges_out)) # Mass conservation
+    dv[2] = v[2] - node_temperature(edges_in, edges_out)
+
+    return nothing
+end
+
+
+function reference_node(node_struct::nc.ReferenceNode)
+    function f!(dv, v, edges_in, edges_out, _, _)
+        let p_ref = node_struct.pressure
+            # DirectedODEVertex, dims == 2
+            # dv[1:2] = 0.0
+
+            # Physics implementation
+            dv[1] = v[1] - p_ref
+            dv[2] = v[2] - node_temperature(edges_in, edges_out)
+            # dv[2] = v[2] - p.T_fixed # TODO: Remove T_fixed, calculate nodal temperature like junction nodes
+            return nothing
+        end
+    end
+    return f!
+end
 end # module
