@@ -60,7 +60,7 @@ end
     # Sets thermal state in de, intended to be called by prosumer dynamic functions
 
     inlet_T = e[1] >= 0 ? v_s[1] : v_d[1] # Upwind convection
-    control_input = p.prosumers.controls.thermal[index](t) # thermal power
+    control_input = p.prosumers.controls_thermal[index](t) # thermal power
     state_old = e[2] # Old outlet temperature
     state_new = prosumer_outlet_T(control_input, e[1], inlet_T, spec_heat)
 
@@ -76,7 +76,7 @@ end
 
     control_input = p.prosumers.controls_hydraulic[index](t) # Pump speed
     state_old = v_d[1] - v_s[1]
-    state_new = p.prosumers.characteristics.hydraulic[index](control_input, e[1]) # new deltaP
+    state_new = p.prosumers.characteristics_hydraulic[index](control_input, e[1]) # new deltaP
 
     de[1] = state_new - state_old
     return nothing
@@ -90,7 +90,7 @@ end
 
     control_input = p.prosumers.controls_hydraulic[index](t) # massflow, model valve opening?
     state_old = e[1]
-    state_new = p.prosumers.characteristics.hydraulic[index](control_input, e[1]) # new mass flow rate
+    state_new = p.prosumers.characteristics_hydraulic[index](control_input, e[1]) # new mass flow rate
 
     de[1] = state_new - state_old
     return nothing
