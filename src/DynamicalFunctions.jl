@@ -41,7 +41,7 @@ function PumpModel(massflow_ref1, deltaP_ref1, speed_ref1,
     c1 = (deltaP_ref1 - (u_ref1 / u_ref2)^2 * deltaP_ref2) / (vol_ref1^2 - (u_ref1 / u_ref2)^2 * vol_ref2^2)
     c2 = (1.0 / u_ref2)^2 * (deltaP_ref2 - (vol_ref2^2 * c1))
 
-    function model(massflow, pump_speed)
+    function model(pump_speed, massflow)
         # Returns pressure increase across pump
         # Constant outer values in let-block for performance
         let c1 = c1
@@ -75,14 +75,14 @@ end
 
 @generated function prosumerstate_hydraulic(type::Type{T}, index, de, e, v_s, v_d, p, t) where {T <: Prosumer}
 
-    if type === DHG.Prosumer_PressureChange
-        state_old = :(v_d[1] - v_s[1])
-        control_input = :(p.prosumers.controls_hydraulic[index](t)) # Pump speed
-        state_new = :(p.prosumers.char_hydraulics[index](e[1], $control_input)) # new deltaP
-    else # type === DHG.Prosumer_Massflow
-        state_old = :(e[1])
-        state_new = :(p.prosumers.char_hydraulics[index](t)) # new mass flow rate
+    if type == Prosumer_PressureChange
+        state_old = :(v_d[1] - v_s[1]) # deltaP
+    else # type == Prosumer_Massflow
+        state_old = :(e[1]) # massflow
     end
+
+    control_input = :(p.prosumers.controls_hydraulic[index](t))
+    state_new = :(p.prosumers.char_hydraulics[index]($control_input, e[1]))
 
     return :(de[1] = $state_new - $state_old)
 end
