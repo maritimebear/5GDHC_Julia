@@ -12,7 +12,7 @@ export prosumer_outlet_T, prosumer_deltaP, prosumer_massflow, pipe, node_tempera
 @inline function prosumer_outlet_T(thermal_power::Real, massflow::Real, temperature_in::Real, spec_heat::Real) 
     # -> T_out = Q / (m * Cp) + T_in
     # Requires Q, m, Cp and T_in to be known
-    return thermal_power / (massflow + spec_heat) + temperature_in
+    return thermal_power / (massflow * spec_heat) + temperature_in
 end
 
 
@@ -32,7 +32,7 @@ function prosumer_deltaP(prosumerstruct::nc.PressureChange, transport_coeffs::Tr
 
             # Local variables
             deltaP = hyd_chr(hyd_ctrl(t), e[1]) # Calculate pressure change from dynamic control input and massflow
-            inlet_T = e[1] >= 0 ? v_s[1] : v_d[1] # Upwind convection: decide upstream direction based on sign of massflow
+            inlet_T = e[1] >= 0 ? v_s[2] : v_d[2] # Upwind convection: decide upstream direction based on sign of massflow
 
             # Physics implementation
             # e[1] : mass flow rate, algebraic constraint
@@ -60,7 +60,7 @@ function prosumer_massflow(prosumerstruct::nc.Massflow, transport_coeffs::Transp
 
             # Local variables
             massflow = hyd_chr(hyd_ctrl(t), e[1])
-            inlet_T = e[1] >= 0 ? v_s[1] : v_d[1]
+            inlet_T = e[1] >= 0 ? v_s[2] : v_d[2]
 
             # Physics implementation
             de[1] = massflow - e[1]
