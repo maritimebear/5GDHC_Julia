@@ -19,6 +19,7 @@ edges_g = [(1 => 2), # producer
            (3 => 4), # consumer
           ]
 for e in edges_g
+    # gr.add_edge!() -> bool to indicate success
     gr.add_edge!(g, e.first, e.second) ? nothing : throw("Failed to add edge $e")
 end
 
@@ -50,80 +51,65 @@ dx = 0.1
 
 ## Prosumer parameters
 pump_nominalspeed = 4100.0 # rpm
-pump_ref1 = (0.0, 40221.0, pump_nominalspeed) # (massflow [kg/s], deltaP [Pa], speed [rpm])
-pump_ref2 = (55.33 * density, 0.0, pump_nominalspeed)
+pump_ref1 = (0.0, 1.0, pump_nominalspeed) # (massflow [kg/s], deltaP [Pa], speed [rpm])
+pump_ref2 = (1.0, 0.0, pump_nominalspeed)
 
-function hydctrl_pump(nominal_speed)
-    function pumpspeed(t)
-        # t in seconds, returns pump speed in rpm
-        let n = nominal_speed
-            return 1.0 * n
-        end
-    end
-    return pumpspeed
+function pumpspeed(t)
+    # t in seconds, returns pump speed in rpm
+    return 1.0 * pump_nominalspeed
 end
 
-function producer_thmpwr(t)
-    # t in seconds, returns heat demand in W
-    if t < (9 * 60 * 60); return 1e3;
-    elseif t < (18 * 60 * 60); return 5e3;
-    else; return 1e3;
-    end
+function heatinput(t)
+    # t in seconds, returns thermal power in W
+    return 1e3
 end
 
-function consumer_hydctrl(t) # massflow(t)
-    if t < (9 * 60 * 60); return -1;
-    elseif t < (18 * 60 * 60); return -2;
-    else; return -1;
-    end
+function massflow_valve(t) # massflow(t)
+    # t in seconds, returns massflow in kg/s
+    return -1.0
 end
-consumer_hydchar = (x, _) -> (x) # Forward control input
-consumer_thmpwr = (t) -> (-0.9 * producer_thmpwr(t))
+
+consumer_hydctrl = massflow_valve
+consumer_hydchar = (ctrl_input, massflow) -> (ctrl_input) # Return control input unchanged
+consumer_thmpwr = (t) -> (-0.9 * heatinput(t))
 
 
-producer_hydctrl = hydctrl_pump(pump_nominalspeed)
-producer_hydchar = DHG.DynamicalFunctions.PumpModel(pump_ref1..., pump_ref2...,
+producer_hydctrl = pumpspeed
+producer_hydchar = DHG.ControlFunctions.PumpModel(pump_ref1..., pump_ref2...,
                                                     density, pump_nominalspeed)
-
-
-hydraulic_controls = sp.SparseVector(4, [1, 3], [producer_hydctrl, consumer_hydctrl
-                                                ])
-hydraulic_characteristics = sp.SparseVector(4, [1, 3], [producer_hydchar, consumer_hydchar
-                                                       ])
-thermal_controls = sp.SparseVector(4, [1, 3], [producer_thmpwr, consumer_thmpwr
-                                              ])
-
-# hydraulic_controls = sp.SparseVector(4, [1], [(t) -> -consumer_hydctrl(t)])
-# hydraulic_characteristics = sp.SparseVector(4, [1], [consumer_hydchar])
-# thermal_controls = sp.SparseVector(4, [1], [(t) -> -producer_thmpwr(t)])
+producer_thmctrl = heatinput
 
 # Reference node
 p_ref = 101325.0 # Pa
 T_fixed = 298.15 # K TODO: Remove T_fixed from ref_pressure node, calculate nodal temperature like junction nodes
 
-
-prosumer_params = DHG.ParameterStruct.ProsumerParameters(hydraulic_controls, thermal_controls, hydraulic_characteristics)
-params = DHG.ParameterStruct.Parameters(density, T_ambient, p_ref, T_fixed, prosumer_params)
-
-
-nodes::Vector{nd.DirectedODEVertex} = [DHG.WrapperFunctions.junction_node() for _ in 1:3]
-push!(nodes, DHG.WrapperFunctions.fixed_node())
-
-# edges::Vector{nd.ODEEdge} = [DHG.WrapperFunctions.pipe_edge(diameter, length, dx, transport_coeffs) for _ in 1:3]
-# pushfirst!(edges, DHG.WrapperFunctions.prosumer_deltaP(1, transport_coeffs)) # (index, coeff_fns)
-# pushfirst!(edges, DHG.WrapperFunctions.prosumer_massflow(1, transport_coeffs))
-
-edges::Vector{nd.ODEEdge} = [DHG.WrapperFunctions.prosumer_deltaP(1, transport_coeffs), # (index, coeff_fns)
-                             DHG.WrapperFunctions.pipe_edge(diameter, length, dx, transport_coeffs),
-                             DHG.WrapperFunctions.prosumer_massflow(3, transport_coeffs),
-                             DHG.WrapperFunctions.pipe_edge(diameter, length, dx, transport_coeffs),
-                            ]
+# Network components
+## Using tuples instead of Vectors: types are not uniform, network structure is constexpr
+node_structs = (DHG.JunctionNode(),
+                DHG.JunctionNode(),
+                DHG.JunctionNode(),
+                DHG.ReferenceNode(p_ref),
+               )
+# edge_structs::Vector{DHG.Edge} = [DHG.
 
 
-nd_fn = nd.network_dynamics(nodes, edges, g)
+# params = DHG.ParameterStruct.Parameters(density, T_ambient, p_ref, T_fixed, prosumer_params)
 
-n_states = sum([mapreduce(x -> x.dim, +, v) for v in (nodes, edges)])
-initial_guess = ones(n_states)
 
-prob = de.ODEProblem(nd_fn, initial_guess, (0.0, 24 * 60 * 60), params)
-sol = de.solve(prob, de.Rodas5())
+# nodes::Vector{nd.DirectedODEVertex} = [DHG.WrapperFunctions.junction_node() for _ in 1:3]
+# push!(nodes, DHG.WrapperFunctions.fixed_node())
+
+# edges::Vector{nd.ODEEdge} = [DHG.WrapperFunctions.prosumer_deltaP(1, transport_coeffs), # (index, coeff_fns)
+#                              DHG.WrapperFunctions.pipe_edge(diameter, length, dx, transport_coeffs),
+#                              DHG.WrapperFunctions.prosumer_massflow(3, transport_coeffs),
+#                              DHG.WrapperFunctions.pipe_edge(diameter, length, dx, transport_coeffs),
+#                             ]
+
+
+# nd_fn = nd.network_dynamics(nodes, edges, g)
+
+# n_states = sum([mapreduce(x -> x.dim, +, v) for v in (nodes, edges)])
+# initial_guess = ones(n_states)
+
+# prob = de.ODEProblem(nd_fn, initial_guess, (0.0, 24 * 60 * 60), params)
+# sol = de.solve(prob, de.Rodas5())
