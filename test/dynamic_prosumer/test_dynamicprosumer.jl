@@ -13,10 +13,10 @@ import .DHG
 
 # Graph
 g = gr.SimpleDiGraph(4)
-edges_g = [(1 => 2), # producer
-           (1 => 3), # hot pipe
-           (2 => 4), # cold pipe
+edges_g = [(1 => 3), # hot pipe
+           (2 => 1), # producer
            (3 => 4), # consumer
+           (4 => 2), # cold pipe
           ]
 for e in edges_g
     # gr.add_edge!() -> bool to indicate success
@@ -66,12 +66,12 @@ end
 
 function massflow_valve(t) # massflow(t)
     # t in seconds, returns massflow in kg/s
-    return -1.0
+    return 1.0
 end
 
 consumer_hydctrl = massflow_valve
 consumer_hydchar = (ctrl_input, massflow) -> (ctrl_input) # Return control input unchanged
-consumer_thmpwr = (t) -> (-0.9 * heatinput(t))
+consumer_thmctrl = (t) -> (-0.9 * heatinput(t))
 
 
 producer_hydctrl = pumpspeed
@@ -90,26 +90,24 @@ node_structs = (DHG.JunctionNode(),
                 DHG.JunctionNode(),
                 DHG.ReferenceNode(p_ref),
                )
-# edge_structs::Vector{DHG.Edge} = [DHG.
 
+# edge_structs = (DHG.Pipe(1, 2, diameter, length, dx),
+edge_structs = (
+                DHG.Pipe(1, 3, diameter, length, dx),
+                DHG.Massflow(2, 1, consumer_hydctrl, consumer_thmctrl, consumer_hydchar),
+                DHG.Pipe(3, 4, diameter, length, dx),
+                DHG.Pipe(4, 2, diameter, length, dx),
+               )
 
-# params = DHG.ParameterStruct.Parameters(density, T_ambient, p_ref, T_fixed, prosumer_params)
+nodes = (DHG.node(x) for x in node_structs) # Generator
+edges = (DHG.edge(x, transport_coeffs) for x in edge_structs) # Generator
+params = (density=density, T_ambient=T_ambient)
 
+# Set up problem and solve
+nd_fn = nd.network_dynamics(collect(nodes), collect(edges), g)
 
-# nodes::Vector{nd.DirectedODEVertex} = [DHG.WrapperFunctions.junction_node() for _ in 1:3]
-# push!(nodes, DHG.WrapperFunctions.fixed_node())
+n_states = sum([mapreduce(x -> x.dim, +, v) for v in (nodes, edges)])
+initial_guess = ones(n_states)
 
-# edges::Vector{nd.ODEEdge} = [DHG.WrapperFunctions.prosumer_deltaP(1, transport_coeffs), # (index, coeff_fns)
-#                              DHG.WrapperFunctions.pipe_edge(diameter, length, dx, transport_coeffs),
-#                              DHG.WrapperFunctions.prosumer_massflow(3, transport_coeffs),
-#                              DHG.WrapperFunctions.pipe_edge(diameter, length, dx, transport_coeffs),
-#                             ]
-
-
-# nd_fn = nd.network_dynamics(nodes, edges, g)
-
-# n_states = sum([mapreduce(x -> x.dim, +, v) for v in (nodes, edges)])
-# initial_guess = ones(n_states)
-
-# prob = de.ODEProblem(nd_fn, initial_guess, (0.0, 24 * 60 * 60), params)
-# sol = de.solve(prob, de.Rodas5())
+prob = de.ODEProblem(nd_fn, initial_guess, (0.0, 24 * 60 * 60), params)
+sol = de.solve(prob, de.Rodas5())
