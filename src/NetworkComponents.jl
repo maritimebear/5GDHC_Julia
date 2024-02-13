@@ -19,37 +19,35 @@ Base.@kwdef struct ReferenceNode <: Node
 end
 
 
-Base.@kwdef struct Pipe{srcNode_T <: Node, dstNode_T <: Node} <: Edge
-    src::srcNode_T
-    dst::dstNode_T
+Base.@kwdef struct Pipe{IdxType <: Integer} <: Edge
+    src::IdxType
+    dst::IdxType
     diameter::Float64
     length::Float64
     dx::Float64
 end
 
 
-Base.@kwdef struct PressureChange{src_T <: Node,
-                                  dst_T <: Node,
+Base.@kwdef struct PressureChange{IdxType <: Integer,
                                   HydCtrl_T <: Function,
                                   ThmCtrl_T <: Function,
                                   HydChr_T <: Function
                                  } <: Prosumer
-    src::src_T
-    dst::dst_T
+    src::IdxType
+    dst::IdxType
     hydraulic_control::HydCtrl_T
     thermal_control::ThmCtrl_T
     hydraulic_characteristic::HydChr_T
 end
 
 
-Base.@kwdef struct Massflow{src_T <: Node,
-                                  dst_T <: Node,
-                                  HydCtrl_T <: Function,
-                                  ThmCtrl_T <: Function,
-                                  HydChr_T <: Function
-                                 } <: Prosumer
-    src::src_T
-    dst::dst_T
+Base.@kwdef struct Massflow{IdxType <: Integer,
+                            HydCtrl_T <: Function,
+                            ThmCtrl_T <: Function,
+                            HydChr_T <: Function
+                           } <: Prosumer
+    src::IdxType
+    dst::IdxType
     hydraulic_control::HydCtrl_T
     thermal_control::ThmCtrl_T
     hydraulic_characteristic::HydChr_T
