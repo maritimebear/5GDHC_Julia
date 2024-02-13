@@ -12,7 +12,7 @@ function edge(edge_struct::nc.Pipe, transport_coeffs::TransportProperties)
     return pipe_edge(edge_struct, transport_coeffs)
 end
 
-function edge(edge_struct<:nc.Prosumer, transport_coeffs::TransportProperties)
+function edge(edge_struct::nc.Prosumer, transport_coeffs::TransportProperties)
     return prosumer_edge(edge_struct, transport_coeffs)
 end
 
@@ -50,7 +50,7 @@ function pipe_edge(pipe_struct::nc.Pipe, transport_coeffs::TransportProperties)
 end
 
 
-function prosumer_edge(prosumer_struct <: nc.Prosumer, transport_coeffs::TransportProperties)
+function prosumer_edge(prosumer_struct::nc.Prosumer, transport_coeffs::TransportProperties)
     # -> nd.ODEEdge
     # Prosumer edges always have dims == 2
     # state 1 => mass flow rate,
