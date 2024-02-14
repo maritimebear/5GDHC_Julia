@@ -66,7 +66,7 @@ end
 
 function massflow_valve(t) # massflow(t)
     # t in seconds, returns massflow in kg/s
-    return 1.0
+    return 0.5
 end
 
 consumer_hydctrl = massflow_valve
@@ -90,11 +90,10 @@ node_structs = (DHG.JunctionNode(),
                 DHG.ReferenceNode(p_ref),
                )
 
-# edge_structs = (DHG.Pipe(1, 2, diameter, length, dx),
 edge_structs = (
                 DHG.Pipe(1, 3, diameter, length, dx),
                 DHG.PressureChange(2, 1, producer_hydctrl, producer_thmctrl, producer_hydchar),
-                DHG.Pipe(3, 4, diameter, length, dx),
+                DHG.Massflow(3, 4, consumer_hydctrl, consumer_thmctrl, consumer_hydchar),
                 DHG.Pipe(4, 2, diameter, length, dx),
                )
 
