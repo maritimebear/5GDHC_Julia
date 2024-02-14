@@ -52,9 +52,11 @@ end
 
 function prosumer_edge(prosumer_struct::nc.Prosumer, transport_coeffs::TransportProperties)
     # -> nd.ODEEdge
-    # Prosumer edges always have dims == 2
-    # state 1 => mass flow rate,
-    # state 2 => temperature at prosumer outlet
+    # Prosumer edges always have dims == 3
+    # state 1 => mass flow rate through edge
+    # state 2 => temperature at edge/source-node interface
+    # state 3 => temperature at edge/destination-node interface
+    # source and destination nodes defined wrt edge direction, constant for a given network
 
     if typeof(prosumer_struct) == nc.PressureChange 
         dyn_fn = DynamicalFunctions.prosumer_deltaP
@@ -63,9 +65,9 @@ function prosumer_edge(prosumer_struct::nc.Prosumer, transport_coeffs::Transport
     end
 
     f = dyn_fn(prosumer_struct, transport_coeffs)
-    dims = 2
+    dims = 3
     diagonal = la.Diagonal([0 for _ in 1:dims]) # Diagonal of mass matrix
-    symbols = [:m, :T_outlet]
+    symbols = [:m, :T_src, :T_dst]
 
     return nd.ODEEdge(f=f, dim=dims, coupling=:directed, mass_matrix=diagonal, sym=symbols)
 end

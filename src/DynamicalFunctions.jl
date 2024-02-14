@@ -12,7 +12,8 @@ export prosumer_outlet_T, prosumer_deltaP, prosumer_massflow, pipe, node_tempera
 @inline function prosumer_outlet_T(thermal_power::Real, massflow::Real, temperature_in::Real, spec_heat::Real) 
     # -> T_out = Q / (m * Cp) + T_in
     # Requires Q, m, Cp and T_in to be known
-    return thermal_power / (massflow * spec_heat) + temperature_in
+    # m always positive, heat transfer direction specified by sign of Q
+    return thermal_power / (abs(massflow) * spec_heat) + temperature_in
 end
 
 
@@ -20,8 +21,8 @@ function prosumer_deltaP(prosumerstruct::nc.PressureChange, transport_coeffs::Tr
     # Returns closure with constants captured
     function f!(de, e, v_s, v_d, _, t)
         # Closure, implements physics for pressure change prosumer
-        # Prosumer edges must always have dims == 2
-        # de[1:2] == 0, algebraic constraints
+        # Prosumer edges must always have dims == 3
+        # de[1:3] == 0, algebraic constraints
         let
             # Capture constants in let-block for performance
             # https://docs.julialang.org/en/v1/manual/performance-tips/#man-performance-captured
@@ -32,13 +33,22 @@ function prosumer_deltaP(prosumerstruct::nc.PressureChange, transport_coeffs::Tr
 
             # Local variables
             deltaP = hyd_chr(hyd_ctrl(t), e[1]) # Calculate pressure change from dynamic control input and massflow
-            inlet_T = e[1] >= 0 ? v_s[2] : v_d[2] # Upwind convection: decide upstream direction based on sign of massflow
+            m_aligned = e[1] >= 0 # true <=> massflow is along edge direction or zero
+            ## inlet_T, outlet_T defined wrt massflow direction: inlet_T always upstream of massflow
+            inlet_T = m_aligned ? v_s[2] : v_d[2] # Upwind convection
+            outlet_T = prosumer_outlet_T(thm_ctrl(t), e[1], inlet_T, spec_heat)
+
+            ## T_src, T_dst wrt edge directivity, temperatures at edge-node interfaces
+            T_src = m_aligned ? inlet_T : outlet_T
+            T_dst = m_aligned ? outlet_T : inlet_T
 
             # Physics implementation
             # e[1] : mass flow rate, algebraic constraint
-            # e[2] : outflow temperature, algebraic constraint
+            # e[2] : temperature at interface with source node, algebraic constraint
+            # e[3] : temperature at interface with destination node, algebraic constraint
             de[1] = deltaP - (v_d[1] - v_s[1])
-            de[2] = prosumer_outlet_T(thm_ctrl(t), e[1], inlet_T, spec_heat) - e[2]
+            de[2] = T_src - e[2]
+            de[3] = T_dst - e[3]
 
             return nothing
         end # let block
@@ -60,11 +70,20 @@ function prosumer_massflow(prosumerstruct::nc.Massflow, transport_coeffs::Transp
 
             # Local variables
             massflow = hyd_chr(hyd_ctrl(t), e[1])
-            inlet_T = e[1] >= 0 ? v_s[2] : v_d[2]
+            m_aligned = e[1] >= 0 # true <=> massflow is along edge direction or zero
+            ## inlet_T, outlet_T defined wrt massflow direction: inlet_T always upstream of massflow
+            inlet_T = m_aligned ? v_s[2] : v_d[2] # Upwind convection
+            outlet_T = prosumer_outlet_T(thm_ctrl(t), e[1], inlet_T, spec_heat)
+
+            # TODO: verify, repeat for deltaP prosumer, correct syms, comments
+            ## T_src, T_dst wrt edge directivity, temperatures at edge-node interfaces
+            T_src = m_aligned ? inlet_T : outlet_T
+            T_dst = m_aligned ? outlet_T : inlet_T
 
             # Physics implementation
-            de[1] = massflow - e[1]
-            de[2] = prosumer_outlet_T(thm_ctrl(t), e[1], inlet_T, spec_heat) - e[2]
+            de[1] = massflow - e[1] # massflow through edge
+            de[2] = T_src - e[2]    # source node interface temperature
+            de[3] = T_dst - e[3]    # destination node interface temperature
 
             return nothing
         end # let block
