@@ -81,7 +81,6 @@ producer_thmctrl = heatinput
 
 # Reference node
 p_ref = 101325.0 # Pa
-T_fixed = 298.15 # K TODO: Remove T_fixed from ref_pressure node, calculate nodal temperature like junction nodes
 
 # Network components
 ## Using tuples instead of Vectors: types are not uniform, network structure is constexpr

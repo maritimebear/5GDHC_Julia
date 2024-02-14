@@ -156,7 +156,6 @@ function reference_node(node_struct::nc.ReferenceNode)
             # Physics implementation
             dv[1] = v[1] - p_ref
             dv[2] = v[2] - node_temperature(edges_in, edges_out)
-            # dv[2] = v[2] - p.T_fixed # TODO: Remove T_fixed, calculate nodal temperature like junction nodes
             return nothing
         end
     end
