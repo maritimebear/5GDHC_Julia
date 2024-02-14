@@ -93,7 +93,7 @@ node_structs = (DHG.JunctionNode(),
 # edge_structs = (DHG.Pipe(1, 2, diameter, length, dx),
 edge_structs = (
                 DHG.Pipe(1, 3, diameter, length, dx),
-                DHG.Massflow(2, 1, consumer_hydctrl, consumer_thmctrl, consumer_hydchar),
+                DHG.PressureChange(2, 1, producer_hydctrl, producer_thmctrl, producer_hydchar),
                 DHG.Pipe(3, 4, diameter, length, dx),
                 DHG.Pipe(4, 2, diameter, length, dx),
                )

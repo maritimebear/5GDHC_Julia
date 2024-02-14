@@ -58,10 +58,13 @@ function prosumer_edge(prosumer_struct::nc.Prosumer, transport_coeffs::Transport
     # state 3 => temperature at edge/destination-node interface
     # source and destination nodes defined wrt edge direction, constant for a given network
 
-    if typeof(prosumer_struct) == nc.PressureChange 
+    T = typeof(prosumer_struct)
+    if T <: nc.PressureChange
         dyn_fn = DynamicalFunctions.prosumer_deltaP
-    else # i.e. type == nc.Massflow
+    elseif T <: nc.Massflow
         dyn_fn = DynamicalFunctions.prosumer_massflow
+    else
+        error("WrapperFunctions::prosumer_edge():\nUnexpected type for prosumer_struct:\n$T\n")
     end
 
     f = dyn_fn(prosumer_struct, transport_coeffs)
