@@ -5,7 +5,7 @@ import SparseArrays as sp
 
 import GLMakie, GraphMakie
 
-include("../../src/DHG.jl")
+include("../src/DHG.jl")
 import .DHG
 
 
