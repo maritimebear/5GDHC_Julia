@@ -104,7 +104,8 @@ function pipe(pipestruct::nc.Pipe, transport_coeffs::TransportProperties)
             htrans_coeff = transport_coeffs.heat_transfer
 
             # Constants TODO: Mark const?
-            area = 0.25 * pi * (pipestruct.diameter ^ 2)
+            area = 0.25 * pi * (pipestruct.diameter ^ 2) # cross-sectional area, velocity calculation
+            area_curved = pi * pipestruct.diameter * pipestruct.dx # heat transfer area
             rel_roughness = pipestruct.roughness / pipestruct.diameter
             aspect_ratio = pipestruct.length / pipestruct.diameter
 
@@ -123,7 +124,7 @@ function pipe(pipestruct::nc.Pipe, transport_coeffs::TransportProperties)
 
             # Energy equation
             @views convection = -(1 / dx) .* FVM.upwind(e[2:end], v_s[2], v_d[2], velocity)
-            @views source = htrans_coeff .* (e[2:end] .- T_ambient)
+            @views source = (htrans_coeff * area_curved) .* (e[2:end] .- T_ambient)
 
             # Physics implementation
             # e[1] : mass flow rate, algebraic constraint
