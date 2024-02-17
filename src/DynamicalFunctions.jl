@@ -103,8 +103,10 @@ function pipe(pipestruct::nc.Pipe, transport_coeffs::TransportProperties)
             friction = transport_coeffs.wall_friction
             htrans_coeff = transport_coeffs.heat_transfer
 
-            # Constant
-            area = 0.25 * pi * (diameter ^ 2) # TODO: Mark const?
+            # Constants TODO: Mark const?
+            area = 0.25 * pi * (pipestruct.diameter ^ 2)
+            rel_roughness = pipestruct.roughness / pipestruct.diameter
+            aspect_ratio = pipestruct.length / pipestruct.diameter
 
             # Get local parameters from Parameters struct
             density = p.density
@@ -112,20 +114,23 @@ function pipe(pipestruct::nc.Pipe, transport_coeffs::TransportProperties)
             # Calculate local variables
             velocity = e[1] / (density * area)
             Re = density * velocity * diameter / dyn_visc
-            ## Momentum equation
-            deltaP = friction(Re) * sign(velocity) * (velocity^2) # Pressure drop due to friction
-            ## Energy equation
+            dynamic_pressure = 0.5 * density * (velocity^2)
+
+            # Momentum equation
+            deltaP = -sign(velocity) * friction(Re, rel_roughness) * aspect_ratio * dynamic_pressure
+            # Pressure drop due to friction, Cengel & Cimbala, Fluid Mechanics: Fundamentals and Applications, 4th ed., equation 8-21
+            ##   -sign(velocity): massflow > 0 => deltaP < 0, massflow < 0 => deltaP > 0; deltaP = pressure(dst) - pressure(src)
+
+            # Energy equation
             @views convection = -(1 / dx) .* FVM.upwind(e[2:end], v_s[2], v_d[2], velocity)
             @views source = htrans_coeff .* (e[2:end] .- T_ambient)
 
             # Physics implementation
             # e[1] : mass flow rate, algebraic constraint
+            #   => de[1] == 0, used to enforce pressure drop across pipe
             # e[2:end] : temperatures in finite-volume cells
-            #   => de[1] == 0, used to calculate pressure drop across pipe due to friction
-            # TODO: Implement pressure loss according to Cengel eqn. 8-21,
-            #       Churchill or Swamee-Jain approximation for Darcy-Weisbach f
-            de[1] = deltaP - (v_d[1] - v_s[1]) # Momentum equation
-            de[2:end] .= convection .+ source # Energy equation
+            de[1] = deltaP - (v_d[1] - v_s[1])
+            de[2:end] .= convection .+ source
 
             return nothing
         end

@@ -36,8 +36,9 @@ dyn_visc::Float64 = 8.9e-4 # Pa-s
 # Assuming steel as wall material
 wall_conductivity = 30.0 # W/m-K, NOT A RELIABLE VALUE !!!
 wall_thickness = 10e-3 # m
+wall_roughness = 0.045e-3 # m, Cengel table 8-2 (pg.371)
 
-friction = (Re) -> (-1.0)
+friction = DHG.Transport.friction_Churchill
 h_wall::Float64 = 2 * wall_conductivity / wall_thickness # Wikipedia: Heat transfer coefficient -- Heat transfer coefficient of pipe wall
 heat_transfer::Float64 = -h_wall / (density * heat_capacity) # TODO: Why is this -ve?
 
@@ -91,10 +92,10 @@ node_structs = (DHG.JunctionNode(),
                )
 
 edge_structs = (
-                DHG.Pipe(1, 3, diameter, length, dx),
+                DHG.Pipe(1, 3, diameter, length, dx, wall_roughness),
                 DHG.PressureChange(2, 1, producer_hydctrl, producer_thmctrl, producer_hydchar),
                 DHG.Massflow(3, 4, consumer_hydctrl, consumer_thmctrl, consumer_hydchar),
-                DHG.Pipe(4, 2, diameter, length, dx),
+                DHG.Pipe(4, 2, diameter, length, dx, wall_roughness),
                )
 
 nodes = (DHG.node(x) for x in node_structs) # Generator
