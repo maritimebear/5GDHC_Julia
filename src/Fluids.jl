@@ -1,10 +1,13 @@
 module Fluids
 
-export Fluid, Water, specific_heat
+export Fluid, Water # Types
+export specific_heat, dynamic_viscosity, thermal_conductivity # Methods dispatching on types
+
 
 abstract type Fluid end
 
 struct Water <: Fluid end
+
 
 # Thermophysical properties as functions of temperature
 # Methods dispatch on Type{T <: Fluid}
@@ -49,6 +52,14 @@ end
 
 
 @inline function thermal_conductivity(::Type{Water}, temperature::Float64)
+    # -> Float64
+    # Thermal conductivity [W/m-K] according to 4th-degree polynomial:
+    # VDI Heat Atlas (2010), section D.3.1
+
+    A = -2.4149; B = 2.45165e-2; C = -0.73121e-4; D = 0.99492e-7; E = -0.53730e-10;
+        # VDI Heat Atlas (2010), D3.1. Table 9 (pg. 367)
+
+    return A + B*temperature + C*temperature^2 + D*temperature^3 + E*temperature^4
 end
 
 
