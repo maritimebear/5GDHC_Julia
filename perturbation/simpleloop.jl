@@ -3,7 +3,9 @@
 import Graphs as gr
 import NetworkDynamics as nd
 import DifferentialEquations as de
+import LinearAlgebra as la
 
+import Plots as plt
 import GLMakie, GraphMakie
 
 include("../src/DHG.jl")
@@ -11,6 +13,13 @@ import .DHG
 
 
 # Parameters
+
+# Perturbation
+syms_to_perturb = :T_end_1
+perturbation = 0.0
+time_interval = (0.0, 24 * 60 * 60.0) # seconds
+save_interval = 5 * 60.0 # seconds
+save_times = [t for t in time_interval[1] : save_interval : time_interval[end]]
 
 # Graph
 g = gr.SimpleDiGraph(4)
@@ -112,11 +121,30 @@ initial_guess = ones(n_states)
 prob_steady = de.SteadyStateProblem(nd_fn, initial_guess, params)
 sol_steady = de.solve(prob_steady, de.DynamicSS(de.Rodas5()))
 
-if sol_steady.retcode != de.ReturnCode.Success
+if sol_steady.retcode !== de.ReturnCode.Success
     throw("Unsuccessful retcode from steady-state solver")
 end
 
 # Perturb steady-state solution
-perturbation = zeros(eltype(sol_steady.u), size(sol_steady.u))
-idxs_to_perturb = nd.idx_containing(nd_fn, syms_to_perturb)
-sol_perturbed = sol_steady.u + perturbation
+perturbation_vec = zeros(eltype(sol_steady.u), size(sol_steady.u))
+idxs_to_perturb = nd.idx_containing(nd_fn, syms_to_perturb)::Vector{<:Integer}
+perturbation_vec[idxs_to_perturb] .= perturbation
+perturbed_state = sol_steady.u + perturbation_vec
+
+# Time-evolution of perturbed state
+prob_unsteady = de.ODEProblem(nd_fn, perturbed_state, time_interval, params)
+sol_unsteady = de.solve(prob_unsteady, de.Rodas5(), saveat=save_times)
+
+if sol_unsteady.retcode !== de.ReturnCode.Success
+    throw("Unsuccessful retcode from unsteady solver")
+end
+
+# Calculate and plot variation of error
+error_norms = zeros(Float64, size(sol_unsteady.t))
+for (i, _) in enumerate(sol_unsteady.t)
+    error_norms[i] = la.norm(sol_unsteady.u[i] - sol_steady.u)
+end
+
+plt.plot(sol_unsteady.t, error_norms)
+plt.xlabel!("time (s)")
+plt.ylabel!("2-norm of error")
