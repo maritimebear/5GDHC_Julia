@@ -43,8 +43,9 @@ function pipe_edge(pipe_struct::nc.Pipe, transport_coeffs::TransportProperties)
     dims = n_cells + oneunit(n_cells) # type-stable, type-agnostic increment
     diagonal = la.Diagonal([1 for _ in 1:dims]) # Diagonal of mass matrix
     diagonal[1] = 0 # state 1 corresponds to an algebraic constraint
-    symbols = [Symbol("T$i") for i in 0 : n_cells]
+    symbols = [Symbol("T_$i") for i in 0 : n_cells]
     symbols[1] = :m
+    symbols[end] = :T_end
 
     return nd.ODEEdge(f=f, dim=dims, coupling=:directed, mass_matrix=diagonal, sym=symbols)
 end
