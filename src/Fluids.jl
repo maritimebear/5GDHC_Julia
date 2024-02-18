@@ -29,6 +29,22 @@ end
 
 
 @inline function dynamic_viscosity(::Type{Water}, temperature::Float64)
+    # -> Float64
+    # Dynamic viscosity [Pa-s] according to PPDS equation:
+    # VDI Heat Atlas (2010), section D.3.1
+
+    A = 0.45047; B = 1.39753; C = 613.181; D = 63.697; E = 0.00006896;
+        # VDI Heat Atlas (2010), D3.1. Table 7 (pg. 352)
+        # Table heading says values are for dynamic viscosity in [mPa-s],
+        # but results after testing match known data in [Pa-s]
+
+    K = (C - temperature) / (temperature - D)
+    K1 = K < 0 ? -( (temperature - C) / (temperature - D) )^(1/3) : K^(1/3)
+        # as per VDI Heat Atlas suggestion
+    K2 = K1 * K
+        # K2 = K^(4/3)
+
+    return E * exp(A*K1 + B*K2)
 end
 
 
