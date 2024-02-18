@@ -3,13 +3,15 @@
 import Graphs as gr
 import NetworkDynamics as nd
 import DifferentialEquations as de
-import LinearAlgebra as la
 
 import Plots as plt
 import GLMakie, GraphMakie
 
 include("../src/DHG.jl")
 import .DHG
+
+include("./utils_perturb.jl")
+import .Utils_Perturb as utils_p
 
 
 # Parameters
@@ -119,33 +121,34 @@ for (k, v) in [(:m => (n) -> rand(Float64, (n, ))), # massflows to random floats
     DHG.Miscellaneous.set_idxs(initial_guess, (k => v), nd_fn)
 end
 
-prob_steady = de.SteadyStateProblem(nd_fn, initial_guess, params)
-sol_steady = de.solve(prob_steady, de.DynamicSS(de.Rodas5()))
+# Steady-state solution
+sol_steady = utils_p.solve_steadystate(nd_fn, initial_guess, params, de.DynamicSS(de.Rodas5()))
 
-if sol_steady.retcode !== de.ReturnCode.Success
-    throw("Unsuccessful retcode from steady-state solver")
-end
+# Dynamic solution, for comparison with steady-state solver solution
+sol_dynamic = utils_p.solve_dynamic(nd_fn, initial_guess, time_interval, params, de.Rodas5())
 
-# Perturb steady-state solution
+# Perturb solution
 perturbation_vec = zeros(eltype(sol_steady.u), size(sol_steady.u))
 idxs_to_perturb = nd.idx_containing(nd_fn, syms_to_perturb)::Vector{<:Integer}
 perturbation_vec[idxs_to_perturb] .= perturbation
-perturbed_state = sol_steady.u + perturbation_vec
+
+perturbed_steady = sol_steady.u + perturbation_vec
+perturbed_dynamic = sol_dynamic.u[end] + perturbation_vec
 
 # Time-evolution of perturbed state
-prob_unsteady = de.ODEProblem(nd_fn, perturbed_state, time_interval, params)
-sol_unsteady = de.solve(prob_unsteady, de.Rodas5(), saveat=save_times)
+sol_pertsteady = utils_p.solve_dynamic(nd_fn, perturbed_steady, time_interval, params,
+                                       de.Rodas5(), save_times)
 
-if sol_unsteady.retcode !== de.ReturnCode.Success
-    throw("Unsuccessful retcode from unsteady solver")
-end
+sol_pertdynamic = utils_p.solve_dynamic(nd_fn, perturbed_dynamic, time_interval, params,
+                                        de.Rodas5(), save_times)
+
 
 # Calculate and plot variation of error
-error_norms = zeros(Float64, size(sol_unsteady.t))
-for (i, _) in enumerate(sol_unsteady.t)
-    error_norms[i] = la.norm(sol_unsteady.u[i] - sol_steady.u)
-end
+errornorms_steady = utils_p.error_norms(sol_pertsteady.u, sol_steady.u)
+plot_errorsteady = utils_p.plot_errornorms(sol_pertsteady.t, errornorms_steady,
+                                           "Time-evolution of perturbed steady-state solution")
 
-plt.plot(sol_unsteady.t, error_norms)
-plt.xlabel!("time (s)")
-plt.ylabel!("2-norm of error")
+
+
+display(plot_errorsteady)
+
