@@ -110,3 +110,7 @@ initial_guess = ones(n_states)
 
 prob = de.ODEProblem(nd_fn, initial_guess, (0.0, 24 * 60 * 60), params)
 sol = de.solve(prob, de.Rodas5())
+
+if sol.retcode !== de.ReturnCode.Success
+    throw("Unsuccessful retcode from solver")
+end
