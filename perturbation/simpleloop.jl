@@ -123,8 +123,18 @@ initial_guess = ones(n_states)
 # Steady-state solution
 sol_steady = utils_p.solve_steadystate(nd_fn, initial_guess, params, de.DynamicSS(de.Rodas5()))
 
-# Dynamic solution, for comparison with steady-state solver solution
+# Dynamic solution, for comparison with steady-state solution
 sol_dynamic = utils_p.solve_dynamic(nd_fn, initial_guess, time_interval, params, de.Rodas5())
+
+# Calculate and plot error between steady-state and dynamic solutions
+errornorms_initialguess = utils_p.error_norms(sol_dynamic.u, sol_steady.u)
+plot_enorms_initialguess = plt.plot(sol_dynamic.t, errornorms_initialguess,
+                                    xlabel="time (s)", ylabel="2-norm of error",
+                                    title="Steady-state solver vs. dynamic solver, from initial_guess",
+                                    yaxis=:log,
+                                   )
+
+
 
 # Perturb solution
 perturbation_vec = zeros(eltype(sol_steady.u), size(sol_steady.u))
@@ -143,11 +153,11 @@ sol_pertdynamic = utils_p.solve_dynamic(nd_fn, perturbed_dynamic, time_interval,
 
 
 # Calculate and plot variation of error
-errornorms_steady = utils_p.error_norms(sol_pertsteady.u, sol_steady.u)
-plot_errorsteady = utils_p.plot_errornorms(sol_pertsteady.t, errornorms_steady,
+errornorms_pertsteady = utils_p.error_norms(sol_pertsteady.u, sol_steady.u)
+plot_enorms_pertsteady = utils_p.plot_errornorms(sol_pertsteady.t, errornorms_pertsteady,
                                            "Time-evolution of perturbed steady-state solution")
 
 
 
-display(plot_errorsteady)
+display(plot_enorms_pertsteady)
 
