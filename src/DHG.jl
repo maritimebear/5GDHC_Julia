@@ -1,6 +1,7 @@
 module DHG
 
 include("FVM.jl")
+include("Fluids.jl")
 include("Transport.jl")
 include("ControlFunctions.jl")
 include("NetworkComponents.jl")

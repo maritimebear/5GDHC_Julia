@@ -3,12 +3,10 @@ module Transport # submodule, included in DHG.jl
 export TransportProperties
 
 
-Base.@kwdef struct TransportProperties{T1, T2, T3, T4}
+Base.@kwdef struct TransportProperties{T1, T2}
     # Members may be constants or callable types
-    dynamic_viscosity::T1
-    wall_friction::T2
-    heat_capacity::T3
-    heat_transfer::T4
+    wall_friction::T1
+    heat_transfer::T2
 end
 
 

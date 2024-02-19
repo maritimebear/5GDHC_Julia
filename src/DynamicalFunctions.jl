@@ -5,6 +5,7 @@ module DynamicalFunctions
 import ..Transport: TransportProperties
 import ..NetworkComponents as nc
 import ..FVM
+import ..Fluids as fl
 
 export prosumer_outlet_T, prosumer_deltaP, prosumer_massflow, pipe, node_temperature, junction!, reference_node
 
@@ -17,7 +18,7 @@ export prosumer_outlet_T, prosumer_deltaP, prosumer_massflow, pipe, node_tempera
 end
 
 
-function prosumer_deltaP(prosumerstruct::nc.PressureChange, transport_coeffs::TransportProperties)
+function prosumer_deltaP(prosumerstruct::nc.PressureChange, ::Type{fluid_T}) where {fluid_T <: fl.Fluid}
     # Returns closure with constants captured
     function f!(de, e, v_s, v_d, _, t)
         # Closure, implements physics for pressure change prosumer
@@ -26,12 +27,13 @@ function prosumer_deltaP(prosumerstruct::nc.PressureChange, transport_coeffs::Tr
         let
             # Capture constants in let-block for performance
             # https://docs.julialang.org/en/v1/manual/performance-tips/#man-performance-captured
-            spec_heat = transport_coeffs.heat_capacity
             hyd_ctrl = prosumerstruct.hydraulic_control
             thm_ctrl = prosumerstruct.thermal_control
             hyd_chr = prosumerstruct.hydraulic_characteristic
 
             # Local variables
+            T_mean = 0.5 * (e[2] + e[3]) # TODO: switch to LMTD
+            spec_heat = fl.specific_heat(fluid_T, T_mean)
             deltaP = hyd_chr(hyd_ctrl(t), e[1]) # Calculate pressure change from dynamic control input and massflow
             m_aligned = e[1] >= 0 # true <=> massflow is along edge direction or zero
             ## inlet_T, outlet_T defined wrt massflow direction: inlet_T always upstream of massflow
@@ -57,18 +59,19 @@ function prosumer_deltaP(prosumerstruct::nc.PressureChange, transport_coeffs::Tr
 end
 
 
-function prosumer_massflow(prosumerstruct::nc.Massflow, transport_coeffs::TransportProperties)
+function prosumer_massflow(prosumerstruct::nc.Massflow, ::Type{fluid_T}) where {fluid_T <: fl.Fluid}
     # Returns closure with constants captured
     function f!(de, e, v_s, v_d, _, t)
         # Closure, implements physics for massflow prosumer
         let
             # Capture constants
-            spec_heat = transport_coeffs.heat_capacity
             hyd_ctrl = prosumerstruct.hydraulic_control
             thm_ctrl = prosumerstruct.thermal_control
             hyd_chr = prosumerstruct.hydraulic_characteristic
 
             # Local variables
+            T_mean = 0.5 * (e[2] + e[3]) # TODO: switch to LMTD
+            spec_heat = fl.specific_heat(fluid_T, T_mean)
             massflow = hyd_chr(hyd_ctrl(t), e[1])
             m_aligned = e[1] >= 0 # true <=> massflow is along edge direction or zero
             ## inlet_T, outlet_T defined wrt massflow direction: inlet_T always upstream of massflow
@@ -92,14 +95,13 @@ function prosumer_massflow(prosumerstruct::nc.Massflow, transport_coeffs::Transp
 end
 
 
-function pipe(pipestruct::nc.Pipe, transport_coeffs::TransportProperties)
+function pipe(pipestruct::nc.Pipe, transport_coeffs::TransportProperties, ::Type{fluid_T}) where {fluid_T <: fl.Fluid}
     # Returns closure with constants captured
     function f!(de, e, v_s, v_d, p, _)
         # Closure, implements physics for pipe edges: wall friction, heat loss to environment
         let
             diameter = pipestruct.diameter
             dx = pipestruct.dx
-            dyn_visc = transport_coeffs.dynamic_viscosity # TODO: Performance: type annotate lhs?
             friction = transport_coeffs.wall_friction
             htrans_coeff = transport_coeffs.heat_transfer
 
@@ -110,9 +112,12 @@ function pipe(pipestruct::nc.Pipe, transport_coeffs::TransportProperties)
             aspect_ratio = pipestruct.length / pipestruct.diameter
 
             # Get local parameters from Parameters struct
-            density = p.density
+            density = p.density # density in parameters (not based on fluid_T) since constant, not a function of temperature
             T_ambient = p.T_ambient
             # Calculate local variables
+            T_mean = 0.5 * (e[2] + e[end])
+            dyn_visc = fl.dynamic_viscosity(fluid_T, T_mean)
+
             velocity = e[1] / (density * area)
             Re = density * velocity * diameter / dyn_visc
             dynamic_pressure = 0.5 * density * (velocity^2)
