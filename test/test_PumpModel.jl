@@ -1,4 +1,4 @@
-# Script to test ControlFunctions.jl::PumpModel
+# Script to test Miscellaneous.jl::PumpModel
 # Generate test domain |> Closure from PumpModel |> plot
 
 # PumpModel and reference points from Licklederer et al,
@@ -7,8 +7,8 @@
 
 import Plots as plt
 
-include("../src/ControlFunctions.jl")
-import .ControlFunctions: PumpModel
+include("../src/Miscellaneous.jl")
+import .Miscellaneous: PumpModel
 
 Base.@kwdef struct ReferencePoint
     m::Float64 # mass flow rate [kg/s]

@@ -3,7 +3,7 @@ module DHG
 include("FVM.jl")
 include("Fluids.jl")
 include("Transport.jl")
-include("ControlFunctions.jl")
+include("Miscellaneous.jl")
 include("NetworkComponents.jl")
 include("DynamicalFunctions.jl")
 include("WrapperFunctions.jl")
