@@ -5,15 +5,16 @@ import LinearAlgebra as la
 import ..DynamicalFunctions
 import ..Transport.TransportProperties
 import ..NetworkComponents as nc
+import ..Fluids
 
 export edge, node, pipe_edge, prosumer_edge, junction_node, reference_node
 
-function edge(edge_struct::nc.Pipe, transport_coeffs::TransportProperties)
-    return pipe_edge(edge_struct, transport_coeffs)
+function edge(edge_struct::nc.Pipe, transport_coeffs::TransportProperties, ::Type{fluid_T}) where {fluid_T <: Fluids.Fluid}
+    return pipe_edge(edge_struct, transport_coeffs, fluid_T)
 end
 
-function edge(edge_struct::nc.Prosumer, transport_coeffs::TransportProperties)
-    return prosumer_edge(edge_struct, transport_coeffs)
+function edge(edge_struct::nc.Prosumer, _, ::Type{fluid_T}) where {fluid_T <: Fluids.Fluid}
+    return prosumer_edge(edge_struct, fluid_T)
 end
 
 function node(::nc.JunctionNode)
@@ -25,7 +26,7 @@ function node(node_struct::nc.ReferenceNode)
 end
 
 
-function pipe_edge(pipe_struct::nc.Pipe, transport_coeffs::TransportProperties)
+function pipe_edge(pipe_struct::nc.Pipe, transport_coeffs::TransportProperties, ::Type{fluid_T}) where {fluid_T <: Fluids.Fluid}
     # -> nd.ODEEdge
     # Edge with friction-induced pressure drop, temperature loss to surroundings
     # state 1 => mass flow rate
@@ -39,7 +40,7 @@ function pipe_edge(pipe_struct::nc.Pipe, transport_coeffs::TransportProperties)
     end
 
     # Calculate arguments to NetworkDynamics.ODEEdge
-    f = DynamicalFunctions.pipe(pipe_struct, transport_coeffs)
+    f = DynamicalFunctions.pipe(pipe_struct, transport_coeffs, fluid_T)
     dims = n_cells + oneunit(n_cells) # type-stable, type-agnostic increment
     diagonal = la.Diagonal([1 for _ in 1:dims]) # Diagonal of mass matrix
     diagonal[1] = 0 # state 1 corresponds to an algebraic constraint
@@ -51,7 +52,7 @@ function pipe_edge(pipe_struct::nc.Pipe, transport_coeffs::TransportProperties)
 end
 
 
-function prosumer_edge(prosumer_struct::nc.Prosumer, transport_coeffs::TransportProperties)
+function prosumer_edge(prosumer_struct::nc.Prosumer, ::Type{fluid_T}) where {fluid_T <: Fluids.Fluid}
     # -> nd.ODEEdge
     # Prosumer edges always have dims == 3
     # state 1 => mass flow rate through edge
@@ -68,7 +69,7 @@ function prosumer_edge(prosumer_struct::nc.Prosumer, transport_coeffs::Transport
         error("WrapperFunctions::prosumer_edge():\nUnexpected type for prosumer_struct:\n$T\n")
     end
 
-    f = dyn_fn(prosumer_struct, transport_coeffs)
+    f = dyn_fn(prosumer_struct, fluid_T)
     dims = 3
     diagonal = la.Diagonal([0 for _ in 1:dims]) # Diagonal of mass matrix
     symbols = [:m, :T_src, :T_dst]

@@ -13,7 +13,7 @@ struct Water <: Fluid end
 # Methods dispatch on Type{T <: Fluid}
 # Calling convention followed in DynamicalFunctions: f(Type{<:Fluid}, temperature)
 
-@inline function specific_heat(::Type{Water}, temperature::Float64)
+@inline function specific_heat(::Type{Water}, temperature)
     # -> Float64
     # Specific heat capacity [J/kg-K] according to PPDS equation:
     # VDI Heat Atlas (2010), section D.3.1
@@ -31,7 +31,7 @@ struct Water <: Fluid end
 end
 
 
-@inline function dynamic_viscosity(::Type{Water}, temperature::Float64)
+@inline function dynamic_viscosity(::Type{Water}, temperature)
     # -> Float64
     # Dynamic viscosity [Pa-s] according to PPDS equation:
     # VDI Heat Atlas (2010), section D.3.1
@@ -51,7 +51,7 @@ end
 end
 
 
-@inline function thermal_conductivity(::Type{Water}, temperature::Float64)
+@inline function thermal_conductivity(::Type{Water}, temperature)
     # -> Float64
     # Thermal conductivity [W/m-K] according to 4th-degree polynomial:
     # VDI Heat Atlas (2010), section D.3.1
