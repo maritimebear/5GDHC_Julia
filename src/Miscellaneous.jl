@@ -1,5 +1,5 @@
-module ControlFunctions
-# Time-dependent control inputs for prosumers
+module Miscellaneous
+
 
 export PumpModel
 

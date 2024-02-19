@@ -74,7 +74,7 @@ consumer_thmctrl = (t) -> (-0.9 * heatinput(t))
 
 
 producer_hydctrl = pumpspeed
-producer_hydchar = DHG.ControlFunctions.PumpModel(pump_ref1..., pump_ref2...,
+producer_hydchar = DHG.Miscellaneous.PumpModel(pump_ref1..., pump_ref2...,
                                                     density, pump_nominalspeed)
 producer_thmctrl = heatinput
 
