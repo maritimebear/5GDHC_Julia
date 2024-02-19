@@ -32,7 +32,7 @@ function prosumer_deltaP(prosumerstruct::nc.PressureChange, ::Type{fluid_T}) whe
             hyd_chr = prosumerstruct.hydraulic_characteristic
 
             # Local variables
-            T_mean = 0.5 * (e[2] + e[3]) # TODO: switch to LMTD
+            T_mean = 0.5 * (e[2] + e[3]) # Bulk mean fluid temperature
             spec_heat = fl.specific_heat(fluid_T, T_mean)
             deltaP = hyd_chr(hyd_ctrl(t), e[1]) # Calculate pressure change from dynamic control input and massflow
             m_aligned = e[1] >= 0 # true <=> massflow is along edge direction or zero
@@ -70,7 +70,7 @@ function prosumer_massflow(prosumerstruct::nc.Massflow, ::Type{fluid_T}) where {
             hyd_chr = prosumerstruct.hydraulic_characteristic
 
             # Local variables
-            T_mean = 0.5 * (e[2] + e[3]) # TODO: switch to LMTD
+            T_mean = 0.5 * (e[2] + e[3]) # Bulk mean fluid temperature
             spec_heat = fl.specific_heat(fluid_T, T_mean)
             massflow = hyd_chr(hyd_ctrl(t), e[1])
             m_aligned = e[1] >= 0 # true <=> massflow is along edge direction or zero
@@ -78,7 +78,6 @@ function prosumer_massflow(prosumerstruct::nc.Massflow, ::Type{fluid_T}) where {
             inlet_T = m_aligned ? v_s[2] : v_d[2] # Upwind convection
             outlet_T = prosumer_outlet_T(thm_ctrl(t), e[1], inlet_T, spec_heat)
 
-            # TODO: verify, repeat for deltaP prosumer, correct syms, comments
             ## T_src, T_dst wrt edge directivity, temperatures at edge-node interfaces
             T_src = m_aligned ? inlet_T : outlet_T
             T_dst = m_aligned ? outlet_T : inlet_T
@@ -105,7 +104,6 @@ function pipe(pipestruct::nc.Pipe, transport_coeffs::TransportProperties, ::Type
             friction = transport_coeffs.wall_friction
             htrans_coeff = transport_coeffs.heat_transfer
 
-            # Constants TODO: Mark const?
             area = 0.25 * pi * (pipestruct.diameter ^ 2) # cross-sectional area, velocity calculation
             area_curved = pi * pipestruct.diameter * pipestruct.dx # heat transfer area
             rel_roughness = pipestruct.roughness / pipestruct.diameter

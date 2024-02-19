@@ -29,8 +29,7 @@ fig_graph = GraphMakie.graphplot(g; ilabels=repr.(1:gr.nv(g)), elabels=repr.(1:g
 # Using material properties of water
 const density = 1e3 # kg/m^3
 T_ambient::Float64 = 273.15 + 10.0 # kelvin
-heat_capacity::Float64 = 4184.0 # J/kg-K, used only in heat transfer coefficient calculation
-dyn_visc::Float64 = 8.9e-4 # Pa-s
+const fluid_T = DHG.Fluids.Water
 
 # Properties of pipe wall
 # Assuming steel as wall material
@@ -40,10 +39,9 @@ wall_roughness = 0.045e-3 # m, Cengel table 8-2 (pg.371)
 
 friction = DHG.Transport.friction_Churchill
 h_wall::Float64 = 2 * wall_conductivity / wall_thickness # Wikipedia: Heat transfer coefficient -- Heat transfer coefficient of pipe wall
-heat_transfer::Float64 = -h_wall / (density * heat_capacity) # TODO: Why is this -ve?
+heat_transfer::Float64 = -h_wall / (density * DHG.Fluids.specific_heat(fluid_T, T_ambient)) # TODO: Why is this -ve?
 
-transport_coeffs = DHG.TransportProperties(dynamic_viscosity=dyn_visc, wall_friction=friction,
-                                             heat_capacity=heat_capacity, heat_transfer=heat_transfer)
+transport_coeffs = DHG.TransportProperties(wall_friction=friction, heat_transfer=heat_transfer)
 
 ## Pipe parameters
 diameter = 1.0
@@ -99,7 +97,7 @@ edge_structs = (
                )
 
 nodes = (DHG.node(x) for x in node_structs) # Generator
-edges = (DHG.edge(x, transport_coeffs) for x in edge_structs) # Generator
+edges = (DHG.edge(x, transport_coeffs, fluid_T) for x in edge_structs) # Generator
 params = (density=density, T_ambient=T_ambient)
 
 # Set up problem and solve
@@ -107,6 +105,8 @@ nd_fn = nd.network_dynamics(collect(nodes), collect(edges), g)
 
 n_states = sum([mapreduce(x -> x.dim, +, v) for v in (nodes, edges)])
 initial_guess = ones(n_states)
+T_idxs = nd.idx_containing(nd_fn, :T)
+initial_guess[T_idxs] .= T_ambient # Required to stop viscosity from blowing up
 
 prob = de.ODEProblem(nd_fn, initial_guess, (0.0, 24 * 60 * 60), params)
 sol = de.solve(prob, de.Rodas5())
