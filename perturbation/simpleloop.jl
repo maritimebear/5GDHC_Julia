@@ -3,6 +3,7 @@
 import Graphs as gr
 import NetworkDynamics as nd
 import DifferentialEquations as de
+import SciMLNLSolve
 
 import Plots as plt
 import GLMakie, GraphMakie
@@ -122,7 +123,7 @@ for (k, v) in [(:m => (n) -> rand(Float64, (n, ))), # massflows to random floats
 end
 
 # Steady-state solution
-sol_steady = utils_p.solve_steadystate(nd_fn, initial_guess, params, de.DynamicSS(de.Rodas5()))
+sol_steady = utils_p.solve_steadystate(nd_fn, initial_guess, params, SciMLNLSolve.NLSolveJL())
 
 # Dynamic solution, for comparison with steady-state solution
 sol_dynamic = utils_p.solve_dynamic(nd_fn, initial_guess, time_interval, params, de.Rodas5())
