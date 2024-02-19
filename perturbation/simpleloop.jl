@@ -19,7 +19,7 @@ import .Utils_Perturb as utils_p
 
 # Perturbation
 syms_to_perturb = :T_end_1
-perturbation = 0.0
+perturbation = 1.0
 time_interval = (0.0, 24 * 60 * 60.0) # seconds
 save_interval = 5 * 60.0 # seconds
 save_times = [t for t in time_interval[1] : save_interval : time_interval[end]]
@@ -119,7 +119,9 @@ params = (density=density, T_ambient=T_ambient)
 nd_fn = nd.network_dynamics(collect(nodes), collect(edges), g)
 
 n_states = sum([mapreduce(x -> x.dim, +, v) for v in (nodes, edges)])
-initial_guess = ones(n_states)
+initial_guess = rand(Float64, (n_states, ))
+    # massflow states must not be zero,
+    # will cause division by zero in nodal temperature calculation
 
 # Steady-state solution
 sol_steady = utils_p.solve_steadystate(nd_fn, initial_guess, params, SciMLNLSolve.NLSolveJL())
