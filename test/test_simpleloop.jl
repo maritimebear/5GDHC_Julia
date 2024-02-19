@@ -103,10 +103,16 @@ params = (density=density, T_ambient=T_ambient)
 # Set up problem and solve
 nd_fn = nd.network_dynamics(collect(nodes), collect(edges), g)
 
+# Initialise state vector: massflow states must be nonzero, required for node temperature calculation
 n_states = sum([mapreduce(x -> x.dim, +, v) for v in (nodes, edges)])
 initial_guess = ones(n_states)
-T_idxs = nd.idx_containing(nd_fn, :T)
-initial_guess[T_idxs] .= T_ambient # Required to stop viscosity from blowing up
+
+for (k, v) in [(:m => (n) -> rand(Float64, (n, ))), # massflows to random floats
+               (:p => p_ref),                       # all pressures to p_ref
+               (:T => T_ambient),                   # all temperatures to T_ambient
+              ]
+    DHG.Miscellaneous.set_idxs(initial_guess, (k => v), nd_fn)
+end
 
 prob = de.ODEProblem(nd_fn, initial_guess, (0.0, 24 * 60 * 60), params)
 sol = de.solve(prob, de.Rodas5())

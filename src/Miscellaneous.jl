@@ -1,7 +1,8 @@
 module Miscellaneous
 
+import NetworkDynamics as nd
 
-export PumpModel
+export PumpModel, set_idxs
 
 
 function PumpModel(massflow_ref1, deltaP_ref1, speed_ref1,
@@ -41,5 +42,34 @@ function PumpModel(massflow_ref1, deltaP_ref1, speed_ref1,
 
     return model
 end
+
+
+function set_idxs(state_vector::Vector{Float64}, key_value::Pair{K, V}, nd_fn) where {
+                    K <: Union{Symbol, AbstractString, Regex}, V <: Union{Real, Function}
+                   }
+    # -> Nothing
+    # nd_fn: return from network_dynamics() , <: SciMLBase.ODEFunction
+    # Wrapper around NetworkDynamics::idx_containing(),
+    # sets values of state_vector at indices matching keys
+    # V <: Function => V(n) -> Real or Vector{Real}, n = number of indices matching keys, Integer
+
+    idxs = nd.idx_containing(nd_fn, key_value.first)::Vector{<:Integer}
+
+    if V <: Real
+        state_vector[idxs] .= key_value.second
+            # all elements at state_vector[idxs] get the same value,
+            # implicit conversion: V -> Float64
+        return nothing
+
+    else # V <: Function
+        val = key_value.second(length(idxs))::Union{Real, Vector{<:Real}}
+        state_vector[idxs] .= val
+            # val::Real => all elements get the same value,
+            # val::Vector => val gets copied into state_vector[idxs], implicit dimension check
+        return nothing
+    end
+
+end
+
 
 end # module
