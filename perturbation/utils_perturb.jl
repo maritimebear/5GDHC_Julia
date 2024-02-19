@@ -50,6 +50,7 @@ function plot_errornorms(time_vec::Vector{Float64}, errornorms::Vector{Float64},
                  xlabel="time (s)",
                  ylabel="2-norm of error",
                  title=title,
+                 yaxis=:log,
                 )
     return p
 end
