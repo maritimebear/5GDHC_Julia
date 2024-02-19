@@ -131,12 +131,8 @@ sol_dynamic = utils_p.solve_dynamic(nd_fn, initial_guess, time_interval, params,
 
 # Calculate and plot error between steady-state and dynamic solutions
 errornorms_initialguess = utils_p.error_norms(sol_dynamic.u, sol_steady.u)
-plot_enorms_initialguess = plt.plot(sol_dynamic.t, errornorms_initialguess,
-                                    xlabel="time (s)", ylabel="2-norm of error",
-                                    title="Steady-state solver vs. dynamic solver, from initial_guess",
-                                    yaxis=:log,
-                                   )
-
+plot_enorms_initialguess = utils_p.plot_errornorms(sol_dynamic.t, errornorms_initialguess,
+                                                   "Steady-state solver vs. dynamic solver, from initial_guess")
 
 
 # Perturb solution
