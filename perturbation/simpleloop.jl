@@ -19,7 +19,7 @@ import .Utils_Perturb as utils_p
 
 # Perturbation
 syms_to_perturb = :T_end_1
-perturbation = 0.0
+perturbation = 1.0
 time_interval = (0.0, 24 * 60 * 60.0) # seconds
 save_interval = 5 * 60.0 # seconds
 save_times = [t for t in time_interval[1] : save_interval : time_interval[end]]
@@ -113,7 +113,7 @@ nd_fn = nd.network_dynamics(collect(nodes), collect(edges), g)
 
 # Initialise state vector: massflow states must be nonzero, required for node temperature calculation
 n_states = sum([mapreduce(x -> x.dim, +, v) for v in (nodes, edges)])
-initial_guess = ones(n_states)
+initial_guess = Vector{Float64}(undef, n_states)
 
 for (k, v) in [(:m => (n) -> rand(Float64, (n, ))), # massflows to random floats
                (:p => p_ref),                       # all pressures to p_ref
