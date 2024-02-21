@@ -33,8 +33,6 @@ const fluid_T = DHG.Fluids.Water
 
 # Properties of pipe wall
 # Assuming steel as wall material
-wall_conductivity = 30.0 # W/m-K, NOT A RELIABLE VALUE !!!
-wall_thickness = 10e-3 # m
 wall_roughness = 0.045e-3 # m, Cengel table 8-2 (pg.371)
 
 transport_models = DHG.TransportModels(friction_factor=DHG.Transport.friction_Churchill,
