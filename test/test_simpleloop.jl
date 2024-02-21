@@ -41,7 +41,7 @@ friction = DHG.Transport.friction_Churchill
 h_wall::Float64 = 2 * wall_conductivity / wall_thickness # Wikipedia: Heat transfer coefficient -- Heat transfer coefficient of pipe wall
 heat_transfer::Float64 = -h_wall / (density * DHG.Fluids.specific_heat(fluid_T, T_ambient)) # TODO: Why is this -ve?
 
-transport_coeffs = DHG.TransportProperties(wall_friction=friction, heat_transfer=heat_transfer)
+transport_coeffs = DHG.TransportProperties(friction_factor=friction, heat_transfer=heat_transfer)
 
 ## Pipe parameters
 diameter = 1.0

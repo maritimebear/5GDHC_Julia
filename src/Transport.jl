@@ -1,11 +1,12 @@
 module Transport # submodule, included in DHG.jl
 
 export TransportProperties
+export Reynolds_number
 
 
 Base.@kwdef struct TransportProperties{T1, T2}
     # Members may be constants or callable types
-    wall_friction::T1
+    friction_factor::T1
     heat_transfer::T2
 end
 

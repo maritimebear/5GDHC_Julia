@@ -2,7 +2,7 @@ module DynamicalFunctions
 
 # Dynamical functions for NetworkDynamics ODEEdge and DirectedODEVertex
 
-import ..Transport: TransportProperties
+import ..Transport
 import ..NetworkComponents as nc
 import ..FVM
 import ..Fluids as fl
@@ -94,15 +94,15 @@ function prosumer_massflow(prosumerstruct::nc.Massflow, ::Type{fluid_T}) where {
 end
 
 
-function pipe(pipestruct::nc.Pipe, transport_coeffs::TransportProperties, ::Type{fluid_T}) where {fluid_T <: fl.Fluid}
+function pipe(pipestruct::nc.Pipe, transport::Transport.TransportProperties, ::Type{fluid_T}) where {fluid_T <: fl.Fluid}
     # Returns closure with constants captured
     function f!(de, e, v_s, v_d, p, _)
         # Closure, implements physics for pipe edges: wall friction, heat loss to environment
         let
             diameter = pipestruct.diameter
             dx = pipestruct.dx
-            friction = transport_coeffs.wall_friction
-            htrans_coeff = transport_coeffs.heat_transfer
+            friction_model = transport.friction_factor
+            htrans_coeff = transport.heat_transfer
 
             area = 0.25 * pi * (pipestruct.diameter ^ 2) # cross-sectional area, velocity calculation
             area_curved = pi * pipestruct.diameter * pipestruct.dx # heat transfer area
@@ -112,16 +112,19 @@ function pipe(pipestruct::nc.Pipe, transport_coeffs::TransportProperties, ::Type
             # Get local parameters from Parameters struct
             density = p.density # density in parameters (not based on fluid_T) since constant, not a function of temperature
             T_ambient = p.T_ambient
+
             # Calculate local variables
             T_mean = 0.5 * (e[2] + e[end])
-            dyn_visc = fl.dynamic_viscosity(fluid_T, T_mean)
-
             velocity = e[1] / (density * area)
-            Re = density * velocity * diameter / dyn_visc
             dynamic_pressure = 0.5 * density * (velocity^2)
 
+            ## Temperature-dependent properties, using mean temperature in pipe
+            dyn_visc = fl.dynamic_viscosity(fluid_T, T_mean)
+            Re = Transport.Reynolds_number(velocity, density, diameter, dyn_visc)
+            friction_factor = friction_model(Re, rel_roughness)
+
             # Momentum equation
-            deltaP = -sign(velocity) * friction(Re, rel_roughness) * aspect_ratio * dynamic_pressure
+            deltaP = -sign(velocity) * friction_factor * aspect_ratio * dynamic_pressure
             # Pressure drop due to friction, Cengel & Cimbala, Fluid Mechanics: Fundamentals and Applications, 4th ed., equation 8-21
             ##   -sign(velocity): massflow > 0 => deltaP < 0, massflow < 0 => deltaP > 0; deltaP = pressure(dst) - pressure(src)
 
