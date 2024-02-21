@@ -1,6 +1,16 @@
-module FVM # submodule, included in DHG.jl
+module Discretisation
 
+export DiscretisationScheme, FVM
 export upwind
+
+
+abstract type DiscretisationScheme end
+
+Base.@kwdef struct FVM{T1 <: Function} <: DiscretisationScheme
+    convection::T1
+    # diffusion::T2
+end
+
 
 function upwind(phi::AbstractVector, phi_W, phi_E, u)
     # Calculates closed surface integral (u*phi) . dS
@@ -18,4 +28,4 @@ function upwind(phi::AbstractVector, phi_W, phi_E, u)
     return (abs(u) .* (phi .- neighbour))
 end
 
-end # (sub)module
+end # module
