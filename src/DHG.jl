@@ -1,6 +1,6 @@
 module DHG
 
-include("FVM.jl")
+include("Discretisation.jl")
 include("Fluids.jl")
 include("Transport.jl")
 include("Miscellaneous.jl")

@@ -37,6 +37,7 @@ wall_roughness = 0.045e-3 # m, Cengel table 8-2 (pg.371)
 
 transport_models = DHG.TransportModels(friction_factor=DHG.Transport.friction_Churchill,
                                        Nusselt_number=DHG.Transport.Nusselt_ChiltonCoburn)
+discretisation = DHG.Discretisation.FVM(convection=DHG.Discretisation.upwind)
 
 ## Pipe parameters
 diameter = 1.0
@@ -92,7 +93,7 @@ edge_structs = (
                )
 
 nodes = (DHG.node(x) for x in node_structs) # Generator
-edges = (DHG.edge(x, transport_models, fluid_T) for x in edge_structs) # Generator
+edges = (DHG.edge(x, transport_models, discretisation, fluid_T) for x in edge_structs) # Generator
 params = (density=density, T_ambient=T_ambient)
 
 # Set up problem and solve
