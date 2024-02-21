@@ -9,7 +9,7 @@ abstract type Fluid end
 struct Water <: Fluid end
 
 
-# Thermophysical properties as functions of temperature
+# Thermophysical properties as functions of temperature, ignoring pressure dependence
 # Methods dispatch on Type{T <: Fluid}
 # Calling convention followed in DynamicalFunctions: f(Type{<:Fluid}, temperature)
 
@@ -59,7 +59,10 @@ end
     A = -2.4149; B = 2.45165e-2; C = -0.73121e-4; D = 0.99492e-7; E = -0.53730e-10;
         # VDI Heat Atlas (2010), D3.1. Table 9 (pg. 367)
 
-    return A + B*temperature + C*temperature^2 + D*temperature^3 + E*temperature^4
+    T = temperature < 273.15 ? 273.15 : temperature
+        # Clip to value at 0°C: polynomial becomes -ve at low temperatures
+
+    return A + B*T + C*T^2 + D*T^3 + E*T^4
 end
 
 
