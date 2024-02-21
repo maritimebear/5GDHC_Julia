@@ -1,13 +1,34 @@
 module Transport # submodule, included in DHG.jl
 
-export TransportProperties
-export Reynolds_number
+export TransportModels
+export Reynolds_number, Prandtl_number
+export Nusselt_ChiltonCoburn ,friction_Churchill
 
 
-Base.@kwdef struct TransportProperties{T1, T2}
+Base.@kwdef struct TransportModels{T1, T2}
     # Members may be constants or callable types
     friction_factor::T1
-    heat_transfer::T2
+    Nusselt_number::T2
+end
+
+
+@inline function Reynolds_number(velocity::Real, density::Real, diameter::Real, dynamic_viscosity::Real)
+    # -> Float64
+    return density * velocity * diameter / dynamic_viscosity
+end
+
+
+@inline function Prandtl_number(dynamic_viscosity::Real, isobaric_spec_heat::Real, thermal_conductivity::Real)
+    # -> Float
+    return dynamic_viscosity * isobaric_spec_heat / thermal_conductivity
+end
+
+
+@inline function Nusselt_ChiltonCoburn(friction_factor::Real, Reynolds_num::Real, Prandtl_num::Real)
+    # -> Float64
+    # Chilton-Coburn analogy: model for Nusselt number in turbulent internal flow, forced convection.
+    # Cengel, "Heat Transfer: A Practical Approach", 2nd ed., section 8-6
+    return 0.125 * friction_factor * Reynolds_num * (Prandtl_num^(1/3))
 end
 
 

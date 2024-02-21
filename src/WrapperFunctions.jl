@@ -3,14 +3,14 @@ module WrapperFunctions
 import NetworkDynamics as nd
 import LinearAlgebra as la
 import ..DynamicalFunctions
-import ..Transport.TransportProperties
+import ..Transport.TransportModels
 import ..NetworkComponents as nc
 import ..Fluids
 
 export edge, node, pipe_edge, prosumer_edge, junction_node, reference_node
 
-function edge(edge_struct::nc.Pipe, transport_coeffs::TransportProperties, ::Type{fluid_T}) where {fluid_T <: Fluids.Fluid}
-    return pipe_edge(edge_struct, transport_coeffs, fluid_T)
+function edge(edge_struct::nc.Pipe, transport_models::TransportModels, ::Type{fluid_T}) where {fluid_T <: Fluids.Fluid}
+    return pipe_edge(edge_struct, transport_models, fluid_T)
 end
 
 function edge(edge_struct::nc.Prosumer, _, ::Type{fluid_T}) where {fluid_T <: Fluids.Fluid}
@@ -26,7 +26,7 @@ function node(node_struct::nc.ReferenceNode)
 end
 
 
-function pipe_edge(pipe_struct::nc.Pipe, transport_coeffs::TransportProperties, ::Type{fluid_T}) where {fluid_T <: Fluids.Fluid}
+function pipe_edge(pipe_struct::nc.Pipe, transport_models::TransportModels, ::Type{fluid_T}) where {fluid_T <: Fluids.Fluid}
     # -> nd.ODEEdge
     # Edge with friction-induced pressure drop, temperature loss to surroundings
     # state 1 => mass flow rate
@@ -40,7 +40,7 @@ function pipe_edge(pipe_struct::nc.Pipe, transport_coeffs::TransportProperties, 
     end
 
     # Calculate arguments to NetworkDynamics.ODEEdge
-    f = DynamicalFunctions.pipe(pipe_struct, transport_coeffs, fluid_T)
+    f = DynamicalFunctions.pipe(pipe_struct, transport_models, fluid_T)
     dims = n_cells + oneunit(n_cells) # type-stable, type-agnostic increment
     diagonal = la.Diagonal([1 for _ in 1:dims]) # Diagonal of mass matrix
     diagonal[1] = 0 # state 1 corresponds to an algebraic constraint

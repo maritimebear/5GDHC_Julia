@@ -94,7 +94,7 @@ function prosumer_massflow(prosumerstruct::nc.Massflow, ::Type{fluid_T}) where {
 end
 
 
-function pipe(pipestruct::nc.Pipe, transport::Transport.TransportProperties, ::Type{fluid_T}) where {fluid_T <: fl.Fluid}
+function pipe(pipestruct::nc.Pipe, transport::Transport.TransportModels, ::Type{fluid_T}) where {fluid_T <: fl.Fluid}
     # Returns closure with constants captured
     function f!(de, e, v_s, v_d, p, _)
         # Closure, implements physics for pipe edges: wall friction, heat loss to environment
@@ -102,7 +102,7 @@ function pipe(pipestruct::nc.Pipe, transport::Transport.TransportProperties, ::T
             diameter = pipestruct.diameter
             dx = pipestruct.dx
             friction_model = transport.friction_factor
-            htrans_coeff = transport.heat_transfer
+            Nusselt_model = transport.Nusselt_number
 
             area = 0.25 * pi * (pipestruct.diameter ^ 2) # cross-sectional area, velocity calculation
             area_curved = pi * pipestruct.diameter * pipestruct.dx # heat transfer area
@@ -120,8 +120,14 @@ function pipe(pipestruct::nc.Pipe, transport::Transport.TransportProperties, ::T
 
             ## Temperature-dependent properties, using mean temperature in pipe
             dyn_visc = fl.dynamic_viscosity(fluid_T, T_mean)
+            thermal_conductivity = fl.thermal_conductivity(fluid_T, T_mean)
+            specific_heat = fl.specific_heat(fluid_T, T_mean)
+
             Re = Transport.Reynolds_number(velocity, density, diameter, dyn_visc)
             friction_factor = friction_model(Re, rel_roughness)
+            Pr = Transport.Prandtl_number(dyn_visc, specific_heat, thermal_conductivity)
+            Nu = Nusselt_model(friction_factor, Re, Pr)
+            heat_transfer_coeff = Nu * thermal_conductivity / diameter # Nu = hD/k
 
             # Momentum equation
             deltaP = -sign(velocity) * friction_factor * aspect_ratio * dynamic_pressure
