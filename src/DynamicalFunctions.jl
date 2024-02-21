@@ -136,7 +136,7 @@ function pipe(pipestruct::nc.Pipe, transport::Transport.TransportModels, ::Type{
 
             # Energy equation
             @views convection = -(1 / dx) .* FVM.upwind(e[2:end], v_s[2], v_d[2], velocity)
-            @views source = (htrans_coeff * area_curved) .* (e[2:end] .- T_ambient)
+            @views source = (heat_transfer_coeff * area_curved) .* (T_ambient .- e[2:end])
 
             # Physics implementation
             # e[1] : mass flow rate, algebraic constraint
