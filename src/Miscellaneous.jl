@@ -2,7 +2,7 @@ module Miscellaneous
 
 import NetworkDynamics as nd
 
-export PumpModel, set_idxs
+export PumpModel, set_idxs, adjacent_find
 
 
 function PumpModel(massflow_ref1, deltaP_ref1, speed_ref1,
@@ -72,5 +72,24 @@ function set_idxs(state_vector::Vector{Float64}, key_value::Pair{K, V}, nd_fn) w
 
 end
 
+
+function adjacent_find(binary_predicate, array)
+    # -> Int
+    # Compare adjacent elements of 'array' using 'binary_predicate'.
+    # Returns array index of first 'true' from 'binary_predicate', or last index if no match found
+    # Following C++ std::adjacent_find(), https://en.cppreference.com/w/cpp/algorithm/adjacent_find
+    # No find-like function in Julia that takes a binary predicate?
+
+    if length(array) == 0
+        throw(DomainError("invalid argument: empty array"))
+    end
+
+    for i in 1:(length(array) - 1)
+        @inbounds if binary_predicate(array[i], array[i+1])
+            return i
+        end
+    end
+    return length(array) # No match found
+end
 
 end # module
