@@ -128,7 +128,7 @@ function pipe(pipestruct::nc.Pipe,
             thermal_conductivity = fl.thermal_conductivity(fluid_T, T_mean)
             specific_heat = fl.specific_heat(fluid_T, T_mean)
 
-            Re = Transport.Reynolds_number(velocity, density, diameter, dyn_visc)
+            Re = Transport.Reynolds_number(abs(velocity), density, diameter, dyn_visc)
             friction_factor = friction_model(Re, rel_roughness)
             Pr = Transport.Prandtl_number(dyn_visc, specific_heat, thermal_conductivity)
             Nu = Nusselt_model(friction_factor, Re, Pr)
