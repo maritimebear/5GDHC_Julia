@@ -1,7 +1,6 @@
 import Graphs as gr
 import NetworkDynamics as nd
 import DifferentialEquations as de
-import SparseArrays as sp
 
 import GLMakie, GraphMakie
 
