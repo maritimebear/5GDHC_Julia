@@ -4,7 +4,12 @@ export DiscretisationScheme, FVM
 export upwind
 
 
-abstract type DiscretisationScheme end
+abstract type DiscretisationScheme
+    # Expected interface:
+    # dx::Float64
+    # convection::Function1
+end
+
 
 Base.@kwdef struct FVM{T1 <: Function} <: DiscretisationScheme
     dx::Float64         # discretisation sizing for temperature transport [m]
