@@ -24,7 +24,6 @@ Base.@kwdef struct Pipe{IdxType <: Integer} <: Edge
     dst::IdxType        # destination node index
     diameter::Float64   # [m]
     length::Float64     # [m]
-    dx::Float64         # discretisation sizing for temperature transport [m]
     roughness::Float64  # mean height of roughness [m]
 end
 

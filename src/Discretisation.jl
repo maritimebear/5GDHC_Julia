@@ -7,7 +7,8 @@ export upwind
 abstract type DiscretisationScheme end
 
 Base.@kwdef struct FVM{T1 <: Function} <: DiscretisationScheme
-    convection::T1
+    dx::Float64         # discretisation sizing for temperature transport [m]
+    convection::T1      # function implementing convection term in temperature transport equation
     # diffusion::T2
 end
 

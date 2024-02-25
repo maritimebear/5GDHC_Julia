@@ -104,13 +104,13 @@ function pipe(pipestruct::nc.Pipe,
         # Closure, implements physics for pipe edges: wall friction, heat loss to environment
         let
             diameter = pipestruct.diameter
-            dx = pipestruct.dx
+            dx = discretisation.dx
             friction_model = transport.friction_factor
             Nusselt_model = transport.Nusselt_number
             disc_scheme = discretisation
 
             area = 0.25 * pi * (pipestruct.diameter ^ 2) # cross-sectional area, velocity calculation
-            area_curved = pi * pipestruct.diameter * pipestruct.dx # heat transfer area
+            area_curved = pi * pipestruct.diameter * discretisation.dx # heat transfer area
             rel_roughness = pipestruct.roughness / pipestruct.diameter
             aspect_ratio = pipestruct.length / pipestruct.diameter
 

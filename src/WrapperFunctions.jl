@@ -42,7 +42,8 @@ function pipe_edge(pipe_struct::nc.Pipe,
     # states 2:end => temperature in finite-volume cells
     # dims == num(states) = 1 + num(cells)
 
-    n_cells::Int = div(pipe_struct.length, pipe_struct.dx, RoundNearest) # number of finite-volume cells, integer division
+    grid_sizing = discretisation_scheme.dx
+    n_cells::Int = div(pipe_struct.length, grid_sizing, RoundNearest) # number of finite-volume cells, integer division
     if (n_cells <= 0 || n_cells == Inf)
         # Change n_cells to UInt to catch these errors, except n_cells == 0
         throw(ArgumentError("calculated n_cells: $n_cells"))

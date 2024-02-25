@@ -13,10 +13,6 @@ import .DHG
 T_ambient::Float64 = 273.15 + 10.0 # kelvin
 p_ref = 101325.0 # [Pa], pressure at reference node
 
-transport_models = DHG.TransportModels(friction_factor=DHG.Transport.friction_Churchill,
-                                       Nusselt_number=DHG.Transport.Nusselt_ChiltonCoburn)
-
-discretisation = DHG.Discretisation.FVM(convection=DHG.Discretisation.upwind)
 
 
 ## Material properties, water as fluid
@@ -33,6 +29,11 @@ pipe_diameter = 1.0
 pipe_length = 1.0
 pipe_dx = 0.1
 
+
+transport_models = DHG.TransportModels(friction_factor=DHG.Transport.friction_Churchill,
+                                       Nusselt_number=DHG.Transport.Nusselt_ChiltonCoburn)
+
+discretisation = DHG.Discretisation.FVM(dx=pipe_dx, convection=DHG.Discretisation.upwind)
 
 ## Prosumer parameters
 pump_nominalspeed = 4100.0 # rpm
@@ -75,13 +76,13 @@ node_structs = (DHG.JunctionNode(),
 
 edge_structs = (
                 DHG.Pipe(1, 3, # src, dst
-                         pipe_diameter, pipe_length, pipe_dx, wall_roughness), # hot pipe
+                         pipe_diameter, pipe_length,  wall_roughness), # hot pipe
                 DHG.PressureChange(2, 1,
                                    producer_hydctrl, producer_thmctrl, producer_hydchar), # producer
                 DHG.Massflow(3, 4,
                              consumer_hydctrl, consumer_thmctrl, consumer_hydchar), # consumer
                 DHG.Pipe(4, 2,
-                         pipe_diameter, pipe_length, pipe_dx, wall_roughness), # cold pipe
+                         pipe_diameter, pipe_length,  wall_roughness), # cold pipe
                )
 
 # --- end of parameters ---
