@@ -24,11 +24,10 @@ initial_temperature = 10 + 273.15
 
 pipe_diameter = 40.8e-3 # [m], value from Hirsch and Nicolai
 pipe_length = 100.0 # [m], value from Hirsch and Nicolai
-# pipe_dx = 1.0
-dxs = [1.0 / 2^r for r in 0:4]
 
-# scheme = Discretisation.FVM(dx=pipe_dx, convection=DHG.Discretisation.upwind)
+dxs = [1.0 / 2^r for r in 0:3]
 schemes = [Discretisation.FVM(dx=dx, convection=DHG.Discretisation.upwind) for dx in dxs]
+max_CFL = 1.0 # set to nothing to disable constraint
 
 timespan = (0.0, 20 * 60.0) # [s]
 saveinterval = 1.0 # [s]
@@ -65,7 +64,8 @@ end
 
 # Function to test multiple combinations of (scheme, grid sizing)
 function test_discretisation(discretisation_scheme::Discretisation.DiscretisationScheme,
-                            grid_sizing::Float64
+                            grid_sizing::Float64,
+                            max_timestep::Float64
                             )                            
 
     # Set up problem and solve
@@ -106,7 +106,11 @@ function test_discretisation(discretisation_scheme::Discretisation.Discretisatio
 
 
     prob = de.ODEProblem(nd_fn, initial_guess, timespan, parameters)
-    sol = de.solve(prob, de.Rodas5(), saveat=saveinterval)
+    if max_timestep > 0.0
+        sol = de.solve(prob, de.Rodas5(), saveat=saveinterval, dtmax=max_timestep)
+    else
+        sol = de.solve(prob, de.Rodas5(), saveat=saveinterval)
+    end
 
     if sol.retcode !== de.ReturnCode.Success
         throw("Unsuccessful retcode from solver")
@@ -125,7 +129,16 @@ end
 expected_velocity = massflow / (density * 0.25 * pi * pipe_diameter^2)
 expected_time = pipe_length / expected_velocity # Time for temperature of src node to reach dst node
 
-sols = [test_discretisation(scheme, dx) for (scheme, dx) in zip(schemes, dxs)]
+if max_CFL !== nothing
+    max_dts = [max_CFL * dx / expected_velocity for dx in dxs] # CFL = u * dt / dx
+else
+    max_dts = [-1.0 for _ in dxs]
+end
+
+
+sols = [test_discretisation(scheme, dx, max_dt)
+        for (scheme, dx, max_dt) in zip(schemes, dxs, max_dts)
+       ]
 
 for (i, sol) in enumerate(sols)
     times = sol.times
