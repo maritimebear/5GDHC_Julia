@@ -1,6 +1,22 @@
-module FVM # submodule, included in DHG.jl
+module Discretisation
 
+export DiscretisationScheme, FVM
 export upwind
+
+
+abstract type DiscretisationScheme
+    # Expected interface:
+    # dx::Float64
+    # convection::Function1
+end
+
+
+Base.@kwdef struct FVM{T1 <: Function} <: DiscretisationScheme
+    dx::Float64         # discretisation sizing for temperature transport [m]
+    convection::T1      # function implementing convection term in temperature transport equation
+    # diffusion::T2
+end
+
 
 function upwind(phi::AbstractVector, phi_W, phi_E, u)
     # Calculates closed surface integral (u*phi) . dS
@@ -18,4 +34,4 @@ function upwind(phi::AbstractVector, phi_W, phi_E, u)
     return (abs(u) .* (phi .- neighbour))
 end
 
-end # (sub)module
+end # module

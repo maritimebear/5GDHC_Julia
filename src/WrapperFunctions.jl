@@ -6,14 +6,19 @@ import ..DynamicalFunctions
 import ..Transport.TransportModels
 import ..NetworkComponents as nc
 import ..Fluids
+import ..Discretisation: DiscretisationScheme
 
 export edge, node, pipe_edge, prosumer_edge, junction_node, reference_node
 
-function edge(edge_struct::nc.Pipe, transport_models::TransportModels, ::Type{fluid_T}) where {fluid_T <: Fluids.Fluid}
-    return pipe_edge(edge_struct, transport_models, fluid_T)
+function edge(edge_struct::nc.Pipe,
+                transport_models::TransportModels,
+                discretisation_scheme::DiscretisationScheme,
+                ::Type{fluid_T}
+            ) where {fluid_T <: Fluids.Fluid}
+    return pipe_edge(edge_struct, transport_models, discretisation_scheme, fluid_T)
 end
 
-function edge(edge_struct::nc.Prosumer, _, ::Type{fluid_T}) where {fluid_T <: Fluids.Fluid}
+function edge(edge_struct::nc.Prosumer, _, _, ::Type{fluid_T}) where {fluid_T <: Fluids.Fluid}
     return prosumer_edge(edge_struct, fluid_T)
 end
 
@@ -26,21 +31,26 @@ function node(node_struct::nc.ReferenceNode)
 end
 
 
-function pipe_edge(pipe_struct::nc.Pipe, transport_models::TransportModels, ::Type{fluid_T}) where {fluid_T <: Fluids.Fluid}
+function pipe_edge(pipe_struct::nc.Pipe,
+                    transport_models::TransportModels,
+                    discretisation_scheme::DiscretisationScheme,
+                    ::Type{fluid_T}
+                ) where {fluid_T <: Fluids.Fluid}
     # -> nd.ODEEdge
     # Edge with friction-induced pressure drop, temperature loss to surroundings
     # state 1 => mass flow rate
     # states 2:end => temperature in finite-volume cells
     # dims == num(states) = 1 + num(cells)
 
-    n_cells::Int = div(pipe_struct.length, pipe_struct.dx, RoundNearest) # number of finite-volume cells, integer division
+    grid_sizing = discretisation_scheme.dx
+    n_cells::Int = div(pipe_struct.length, grid_sizing, RoundNearest) # number of finite-volume cells, integer division
     if (n_cells <= 0 || n_cells == Inf)
         # Change n_cells to UInt to catch these errors, except n_cells == 0
         throw(ArgumentError("calculated n_cells: $n_cells"))
     end
 
     # Calculate arguments to NetworkDynamics.ODEEdge
-    f = DynamicalFunctions.pipe(pipe_struct, transport_models, fluid_T)
+    f = DynamicalFunctions.pipe(pipe_struct, transport_models, discretisation_scheme, fluid_T)
     dims = n_cells + oneunit(n_cells) # type-stable, type-agnostic increment
     diagonal = la.Diagonal([1 for _ in 1:dims]) # Diagonal of mass matrix
     diagonal[1] = 0 # state 1 corresponds to an algebraic constraint
