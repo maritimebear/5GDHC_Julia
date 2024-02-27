@@ -1,8 +1,14 @@
 module Miscellaneous
 
 import NetworkDynamics as nd
+import Graphs
+import GLMakie, GraphMakie
+import DifferentialEquations as de
 
-export PumpModel, set_idxs, adjacent_find
+export PumpModel
+export set_idxs, initialise
+export solve_steadystate, solve_dynamic
+export adjacent_find, plot_graph
 
 
 function PumpModel(massflow_ref1, deltaP_ref1, speed_ref1,
@@ -70,6 +76,67 @@ function set_idxs(state_vector::Vector{Float64}, key_value::Pair{K, V}, nd_fn) w
         return nothing
     end
 
+end
+
+
+function initialise(nd_fn,
+                    massflow_init::T1,
+                    pressure_init::T2,
+                    temperature_init::T3
+                ) where {T1, T2, T3 <: Union{Real, Function}}
+    # -> Vector{Float64}
+    # Calls/assigns each _init to the appropriate states in initial state vector
+    # nd_fn: return from network_dynamics() , <: SciMLBase.ODEFunction
+    #
+    # Symbols for massflow, pressure and temperature states in nd_fn set in WrapperFunctions.jl,
+    # assuming these to be unchanged
+
+    n_states = length(nd_fn.syms)
+    initial_state = Vector{Float64}(undef, n_states)
+
+    for (k, v) in [(:m => massflow_init),
+                   (:p => pressure_init),
+                   (:T => temperature_init),
+                  ]
+        set_idxs(initial_state, (k => v), nd_fn) # set_idxs() defined in this file
+    end
+
+    return initial_state
+end
+
+
+function plot_graph(g::Graphs.SimpleDiGraph)
+    # -> handle to plot
+    # Displays graph g with nodes and edges numbers (following implicit Graphs.jl ordering)
+    return GraphMakie.graphplot(g; ilabels=repr.(1:Graphs.nv(g)), elabels=repr.(1:Graphs.ne(g)))
+end
+
+
+function check_retcode(solution, solvername)
+    # Checks return code from de.solve() result, raise warning if not successful
+    if solution.retcode !== de.ReturnCode.Success
+        @warn "Unsuccessful retcode from $(solvername): $(solution.retcode)"
+    end
+end
+
+
+function solve_steadystate(f, x0, p, solver)
+    # -> de.solve(de.SteadyStateProblem, solver) type
+    # Wrapper to make main script more readable
+    prob = de.SteadyStateProblem(f, x0, p)
+    sol = de.solve(prob, solver)
+    check_retcode(sol, "steady-state solver")
+    return sol
+end
+
+
+function solve_dynamic(f, x0, p, solver, time_interval, save_times=[])
+    # -> de.solve(de.ODEProblem, solver, saveat=save_times) type
+    # Wrapper to make main script more readable
+    prob = de.ODEProblem(f, x0, time_interval, p)
+    sol = de.solve(prob, solver, saveat=save_times)
+    check_retcode(sol, "dynamic solver")
+    return sol
 end
 
 
