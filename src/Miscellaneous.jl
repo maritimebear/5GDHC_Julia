@@ -2,7 +2,7 @@ module Miscellaneous
 
 import NetworkDynamics as nd
 
-export PumpModel, set_idxs, adjacent_find
+export solve_steadystate, solve_dynamic
 
 
 function PumpModel(massflow_ref1, deltaP_ref1, speed_ref1,
@@ -73,6 +73,34 @@ function set_idxs(state_vector::Vector{Float64}, key_value::Pair{K, V}, nd_fn) w
 end
 
 
+function check_retcode(solution, solvername)
+    # Checks return code from de.solve() result, raise warning if not successful
+    if solution.retcode !== de.ReturnCode.Success
+        @warn "Unsuccessful retcode from $(solvername): $(solution.retcode)"
+    end
+end
+
+
+function solve_steadystate(f, x0, p, solver)
+    # -> de.solve(de.SteadyStateProblem, solver) type
+    # Wrapper to make main script more readable
+    prob = de.SteadyStateProblem(f, x0, p)
+    sol = de.solve(prob, solver)
+    check_retcode(sol, "steady-state solver")
+    return sol
+end
+
+
+function solve_dynamic(f, x0, p, solver, time_interval, save_times=[])
+    # -> de.solve(de.ODEProblem, solver, saveat=save_times) type
+    # Wrapper to make main script more readable
+    prob = de.ODEProblem(f, x0, time_interval, p)
+    sol = de.solve(prob, solver, saveat=save_times)
+    check_retcode(sol, "dynamic solver")
+    return sol
+end
+
+
 function adjacent_find(binary_predicate, array)
     # -> Int
     # Compare adjacent elements of 'array' using 'binary_predicate'.
@@ -91,5 +119,6 @@ function adjacent_find(binary_predicate, array)
     end
     return length(array) # No match found
 end
+
 
 end # module
