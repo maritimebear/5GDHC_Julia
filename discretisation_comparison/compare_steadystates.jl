@@ -1,5 +1,16 @@
 # Script to compare steady-state solution for various discretisation schemes and grid sizings
 
+# Sources for reference values:
+#
+# Hirsch and Nicolai, "An efficient numerical solution method for detailed modelling of large
+#   5th generation district heating and cooling networks", 2022, Section 4.1, Case 1
+#
+# Cengel and Cimbala, "Fluid Mechanics: Fundamentals and Applications", 4th ed., table 8-2 (pg.371)
+#
+# Licklederer et al, "Thermohydraulic model of Smart Thermal Grids with bidirectional power flow
+#   between prosumers", 2021
+
+
 import Graphs as gr
 import NetworkDynamics as nd
 import DifferentialEquations as de
@@ -18,67 +29,79 @@ import .DHG
 
 Random.seed!(93851203598)
 solver = SciMLNLSolve.NLSolveJL
+initial_dx = 10.0 # [m]
+refinement_ratio = 2
+n_refinement_levels = 4
+
 
 ## Fixed/reference values
 n_nodes = 4
 init_massflows = rand(Float64, (n_nodes, )) # Initial values for massflow states
 T_ambient = 273.15 + 10.0 # [K]
-p_ref = 101325.0 # [Pa], pressure at reference node
+p_ref = 0.0 # [Pa], reference pressure
+
+
+## Pipe geometry, same for all pipes
+pipe_diameter = 1.0 # [m]
+pipe_length = 1e3 # [m]
+
+# Values from Hirsch and Nicolai:
+# pipe_diameter = 40.8e-3 # [m]
+# pipe_length = 100.0 # [m]
+
+
+## Prosumers: massflow, thermal power
+massflow = 1.0 # [kg/s]
+# massflow = 0.3 # [kg/s], Hirsch and Nicolai
+
+producer_heatrate = 1e6 # [W]
+consumer_heatrate = -1e3 # [W]
+
+
+## Pump model for producer
+pump_nominalspeed = 1000.0 # rpm
+pump_ref1 = (0.0, 101325.0, pump_nominalspeed) # (massflow [kg/s], deltaP [Pa], speed [rpm])
+pump_ref2 = (1.0, 0.0, pump_nominalspeed)
+
+# Values from Licklederer et al:
+# pump_nominalspeed = 4100.0 # rpm
+# pump_ref1 = (0.0, 40221.0, pump_nominalspeed) # (massflow [kg/s], deltaP [Pa], speed [rpm])
+# pump_ref2 = (0.922, 0.0, pump_nominalspeed)
+
 
 ## Material properties, water as fluid
 density = 1e3 # [kg/m^3]
 fluid_T = DHG.Fluids.Water
 
-## Properties of pipe wall, taking steel as wall material
-wall_roughness = 0.045e-3 # [m]
-    # Cengel and Cimbala, "Fluid Mechanics: Fundamentals and Applications", 4th ed., table 8-2 (pg.371)
 
-## Pipe parameters, same for all pipes
-pipe_diameter = 1.0
-pipe_length = 1.0
+## Properties of pipe wall, taking steel as wall material
+wall_roughness = 0.045e-3 # [m], Cengel and Cimbala
+
 
 ## Discretisation
-# dxs = [1.0 / 2^r for r in 0:3]
-dxs = [0.1]
+dxs = [initial_dx / (refinement_ratio ^ r) for r in 0:n_refinement_levels]
+
 convection_schemes = [DHG.Discretisation.upwind]
 discretisations = [DHG.Discretisation.FVM(dx=dx, convection=scheme)
                    for scheme in convection_schemes # outer loop
                    for dx in dxs
                   ]
 
+
 ## Transport properties
 transport_models = DHG.TransportModels(friction_factor=DHG.Transport.friction_Churchill,
                                        Nusselt_number=DHG.Transport.Nusselt_ChiltonCoburn)
 
-## Prosumer parameters
-pump_nominalspeed = 4100.0 # rpm
-pump_ref1 = (0.0, 1.0, pump_nominalspeed) # (massflow [kg/s], deltaP [Pa], speed [rpm])
-pump_ref2 = (1.0, 0.0, pump_nominalspeed)
 
-function pumpspeed(t)
-    # t in seconds, returns pump speed in rpm
-    return 1.0 * pump_nominalspeed
-end
-
-function heatinput(t)
-    # t in seconds, returns thermal power in W
-    return 1e3
-end
-
-function massflow_valve(t) # massflow(t)
-    # t in seconds, returns massflow in kg/s
-    return 0.5
-end
-
-consumer_hydctrl = massflow_valve
+## Prosumer functions
+consumer_hydctrl = (t) -> (massflow)
 consumer_hydchar = (ctrl_input, massflow) -> (ctrl_input) # Return control input unchanged
-consumer_thmctrl = (t) -> (-0.9 * heatinput(t))
+consumer_thmctrl = (t) -> (consumer_heatrate)
 
+producer_hydctrl = (t) -> (pump_nominalspeed)
+producer_hydchar = DHG.Miscellaneous.PumpModel(pump_ref1..., pump_ref2..., density, pump_nominalspeed)
+producer_thmctrl = (t) -> (producer_heatrate)
 
-producer_hydctrl = pumpspeed
-producer_hydchar = DHG.Miscellaneous.PumpModel(pump_ref1..., pump_ref2...,
-                                                    density, pump_nominalspeed)
-producer_thmctrl = heatinput
 
 ## Network structure
 node_structs = (DHG.JunctionNode(),
@@ -123,8 +146,9 @@ for (i, discn) in enumerate(discretisations)
                                                 )
 
     ## Solve for steady-state
+    print("Starting solve: dx = $(discn.dx)")
     results_dict[i] = (syms=nd_fn.syms,
                        sol=DHG.Miscellaneous.solve_steadystate(nd_fn, initial_guess, params, solver())
                       )
-
+    println(" --- done")
 end
