@@ -89,7 +89,7 @@ edge_structs = (
 
 
 # Set up problem and solve
-# nd_fn = nd.network_dynamics(collect(nodes), collect(edges), g)
+# nd_fn = nd.network_dynamics(collect(node_structs), collect(edge_structs), g)
 nd_fn, g = DHG.assemble(node_structs, edge_structs, transport_models, discretisation, fluid_T)
 params = (density=density, T_ambient=T_ambient)
 
