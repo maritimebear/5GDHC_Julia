@@ -90,7 +90,7 @@ discretisations = [DHG.Discretisation.FVM(dx=dx, convection=scheme)
 
 ## Transport properties
 transport_models = DHG.TransportModels(friction_factor=DHG.Transport.friction_Churchill,
-                                       Nusselt_number=DHG.Transport.Nusselt_ChiltonCoburn)
+                                       Nusselt_number=DHG.Transport.Nusselt_ChiltonColburn)
 
 
 ## Prosumer functions

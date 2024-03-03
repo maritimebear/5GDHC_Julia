@@ -2,7 +2,7 @@ module Transport # submodule, included in DHG.jl
 
 export TransportModels
 export Reynolds_number, Prandtl_number
-export Nusselt_ChiltonCoburn ,friction_Churchill
+export Nusselt_ChiltonColburn ,friction_Churchill
 
 
 Base.@kwdef struct TransportModels{T1, T2}
