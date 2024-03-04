@@ -147,3 +147,11 @@ for (i, discn) in enumerate(discretisations)
                       )
     println(" --- done")
 end
+
+
+
+function plot_pipe(result, edge_idx)
+    start_idx = findfirst((sym) -> (sym == Symbol("T_1_$(edge_idx)")), result.syms)
+    stop_idx = findfirst((sym) -> (sym == Symbol("T_end_$(edge_idx)")), result.syms)
+    return plt.plot(result.sol[start_idx:stop_idx])
+end
