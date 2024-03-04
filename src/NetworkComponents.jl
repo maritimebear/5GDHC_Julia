@@ -20,11 +20,13 @@ end
 
 
 Base.@kwdef struct Pipe{IdxType <: Integer} <: Edge
-    src::IdxType        # source node index
-    dst::IdxType        # destination node index
-    diameter::Float64   # [m]
-    length::Float64     # [m]
-    roughness::Float64  # mean height of roughness [m]
+    src::IdxType                # source node index
+    dst::IdxType                # destination node index
+    inner_diameter::Float64     # [m]
+    outer_diameter::Float64     # [m]
+    length::Float64             # [m]
+    roughness::Float64          # mean height of roughness [m]
+    wall_conductivity::Float64  # thermal conductivity, [W/m-K]
 end
 
 

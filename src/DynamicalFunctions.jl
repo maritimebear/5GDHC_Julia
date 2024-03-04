@@ -103,18 +103,20 @@ function pipe(pipestruct::nc.Pipe,
     function f!(de, e, v_s, v_d, p, _)
         # Closure, implements physics for pipe edges: wall friction, heat loss to environment
         let
-            diameter = pipestruct.diameter
+            inner_diameter = pipestruct.inner_diameter
             dx = discretisation.dx
             friction_model = transport.friction_factor
             Nusselt_model = transport.Nusselt_number
             disc_scheme = discretisation
 
-            area = 0.25 * pi * (pipestruct.diameter ^ 2) # cross-sectional area, velocity calculation
-            area_curved = pi * pipestruct.diameter * discretisation.dx # heat transfer area
-            rel_roughness = pipestruct.roughness / pipestruct.diameter
-            aspect_ratio = pipestruct.length / pipestruct.diameter
+            area = 0.25 * pi * (pipestruct.inner_diameter ^ 2) # cross-sectional area, velocity calculation
+            rel_roughness = pipestruct.roughness / pipestruct.inner_diameter
+            aspect_ratio = pipestruct.length / pipestruct.inner_diameter
+            Adx_inv = (area * discretisation.dx)^(-1)
+            UA_wall_inv = log(pipestruct.outer_diameter / pipestruct.inner_diameter) / (2.0 * pipestruct.wall_conductivity * pi * discretisation.dx)
+                # 1/UA_wall = ln(Do/Di) / (2 * k_wall * pi * dx)
 
-            # Get local parameters from Parameters struct
+            # Get local parameters from Parameters struct, can be modified via callbacks
             density = p.density # density in parameters (not based on fluid_T) since constant, not a function of temperature
             T_ambient = p.T_ambient
 
@@ -128,11 +130,14 @@ function pipe(pipestruct::nc.Pipe,
             thermal_conductivity = fl.thermal_conductivity(fluid_T, T_mean)
             specific_heat = fl.specific_heat(fluid_T, T_mean)
 
-            Re = Transport.Reynolds_number(abs(velocity), density, diameter, dyn_visc)
+            Re = Transport.Reynolds_number(abs(velocity), density, inner_diameter, dyn_visc)
             friction_factor = friction_model(Re, rel_roughness)
             Pr = Transport.Prandtl_number(dyn_visc, specific_heat, thermal_conductivity)
             Nu = Nusselt_model(friction_factor, Re, Pr)
-            heat_transfer_coeff = Nu * thermal_conductivity / diameter # Nu = hD/k
+
+            ## Heat transfer coefficient
+            UA_fluid_inv = (Nu * thermal_conductivity * pi * dx)^(-1) # UA_fluid = (Nu * k / D) * (pi * D * dx)
+            UA_overall = (UA_fluid_inv + UA_wall_inv)^(-1) # 1/UA_overall = 1/UA_fluid + 1/UA_wall
 
             # Momentum equation
             deltaP = -sign(velocity) * friction_factor * aspect_ratio * dynamic_pressure
@@ -141,7 +146,7 @@ function pipe(pipestruct::nc.Pipe,
 
             # Energy equation
             @views convection = -(1 / dx) .* disc_scheme.convection(e[2:end], v_s[2], v_d[2], velocity)
-            @views source = (heat_transfer_coeff * area_curved) .* (T_ambient .- e[2:end])
+            @views source = (density * specific_heat)^(-1) * Adx_inv * UA_overall .* (T_ambient .- e[2:end])
 
             # Physics implementation
             # e[1] : mass flow rate, algebraic constraint

@@ -20,12 +20,15 @@ const density = 1e3 # [kg/m^3]
 fluid_T = DHG.Fluids.Water
 
 ## Properties of pipe wall, taking steel as wall material
+wall_thickness = 10e-3 # [m]
+wall_conductivity = 50.0 # [W/m-K]
 wall_roughness = 0.045e-3 # [m]
     # Cengel and Cimbala, "Fluid Mechanics: Fundamentals and Applications", 4th ed., table 8-2 (pg.371)
 
 
 ## Pipe parameters, same for all pipes
-pipe_diameter = 1.0
+pipe_innerdiameter = 1.0
+pipe_outerdiameter = pipe_innerdiameter + (2 * wall_thickness)
 pipe_length = 1.0
 pipe_dx = 0.1
 
@@ -76,13 +79,15 @@ node_structs = (DHG.JunctionNode(),
 
 edge_structs = (
                 DHG.Pipe(1, 3, # src, dst
-                         pipe_diameter, pipe_length,  wall_roughness), # hot pipe
+                         pipe_innerdiameter, pipe_outerdiameter, pipe_length,
+                         wall_roughness, wall_conductivity), # hot pipe
                 DHG.PressureChange(2, 1,
                                    producer_hydctrl, producer_thmctrl, producer_hydchar), # producer
                 DHG.Massflow(3, 4,
                              consumer_hydctrl, consumer_thmctrl, consumer_hydchar), # consumer
                 DHG.Pipe(4, 2,
-                         pipe_diameter, pipe_length,  wall_roughness), # cold pipe
+                         pipe_innerdiameter, pipe_outerdiameter, pipe_length,
+                         wall_roughness, wall_conductivity), # cold pipe
                )
 
 # --- end of parameters ---
