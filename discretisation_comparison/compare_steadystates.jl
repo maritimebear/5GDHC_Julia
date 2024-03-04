@@ -42,31 +42,24 @@ p_ref = 0.0 # [Pa], reference pressure
 
 
 ## Pipe geometry, same for all pipes
-pipe_diameter = 1.0 # [m]
-pipe_length = 1e3 # [m]
-
 # Values from Hirsch and Nicolai:
-# pipe_diameter = 40.8e-3 # [m]
-# pipe_length = 100.0 # [m]
+pipe_innerdiameter = 40.8e-3 # [m]
+pipe_outerdiameter = 50e-3 # [m]
+pipe_length = 100.0 # [m]
+wall_conductivity = 0.4 # [W/m-K]
 
 
 ## Prosumers: massflow, thermal power
-massflow = 1.0 # [kg/s]
-# massflow = 0.3 # [kg/s], Hirsch and Nicolai
-
-producer_heatrate = 1e6 # [W]
-consumer_heatrate = -1e3 # [W]
+massflow = 0.3 # [kg/s], Hirsch and Nicolai
+producer_heatrate = 1e3 # [W]
+consumer_heatrate = -0.5e3 # [W]
 
 
 ## Pump model for producer
-pump_nominalspeed = 1000.0 # rpm
-pump_ref1 = (0.0, 101325.0, pump_nominalspeed) # (massflow [kg/s], deltaP [Pa], speed [rpm])
-pump_ref2 = (1.0, 0.0, pump_nominalspeed)
-
 # Values from Licklederer et al:
-# pump_nominalspeed = 4100.0 # rpm
-# pump_ref1 = (0.0, 40221.0, pump_nominalspeed) # (massflow [kg/s], deltaP [Pa], speed [rpm])
-# pump_ref2 = (0.922, 0.0, pump_nominalspeed)
+pump_nominalspeed = 4100.0 # rpm
+pump_ref1 = (0.0, 40221.0, pump_nominalspeed) # (massflow [kg/s], deltaP [Pa], speed [rpm])
+pump_ref2 = (0.922, 0.0, pump_nominalspeed)
 
 
 ## Material properties, water as fluid
@@ -112,13 +105,15 @@ node_structs = (DHG.JunctionNode(),
 
 edge_structs = (
                 DHG.Pipe(1, 3, # src, dst
-                         pipe_diameter, pipe_length,  wall_roughness), # hot pipe
+                         pipe_innerdiameter, pipe_outerdiameter, pipe_length,
+                         wall_roughness, wall_conductivity), # hot pipe
                 DHG.PressureChange(2, 1,
                                    producer_hydctrl, producer_thmctrl, producer_hydchar), # producer
                 DHG.Massflow(3, 4,
                              consumer_hydctrl, consumer_thmctrl, consumer_hydchar), # consumer
                 DHG.Pipe(4, 2,
-                         pipe_diameter, pipe_length,  wall_roughness), # cold pipe
+                         pipe_innerdiameter, pipe_outerdiameter, pipe_length,
+                         wall_roughness, wall_conductivity), # cold pipe
                )
 
 # --- end of parameters --- #
