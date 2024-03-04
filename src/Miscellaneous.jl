@@ -1,8 +1,15 @@
 module Miscellaneous
 
 import NetworkDynamics as nd
+import Graphs
+import GLMakie, GraphMakie
+import DifferentialEquations as de
 
 export solve_steadystate, solve_dynamic
+export PumpModel
+export set_idxs, initialise
+export solve_steadystate, solve_dynamic
+export adjacent_find, plot_graph
 
 
 function PumpModel(massflow_ref1, deltaP_ref1, speed_ref1,
@@ -70,6 +77,39 @@ function set_idxs(state_vector::Vector{Float64}, key_value::Pair{K, V}, nd_fn) w
         return nothing
     end
 
+end
+
+
+function initialise(nd_fn,
+                    massflow_init::T1,
+                    pressure_init::T2,
+                    temperature_init::T3
+                ) where {T1, T2, T3 <: Union{Real, Function}}
+    # -> Vector{Float64}
+    # Calls/assigns each _init to the appropriate states in initial state vector
+    # nd_fn: return from network_dynamics() , <: SciMLBase.ODEFunction
+    #
+    # Symbols for massflow, pressure and temperature states in nd_fn set in WrapperFunctions.jl,
+    # assuming these to be unchanged
+
+    n_states = length(nd_fn.syms)
+    initial_state = Vector{Float64}(undef, n_states)
+
+    for (k, v) in [(:m => massflow_init),
+                   (:p => pressure_init),
+                   (:T => temperature_init),
+                  ]
+        set_idxs(initial_state, (k => v), nd_fn) # set_idxs() defined in this file
+    end
+
+    return initial_state
+end
+
+
+function plot_graph(g::Graphs.SimpleDiGraph)
+    # -> handle to plot
+    # Displays graph g with nodes and edges numbers (following implicit Graphs.jl ordering)
+    return GraphMakie.graphplot(g; ilabels=repr.(1:Graphs.nv(g)), elabels=repr.(1:Graphs.ne(g)))
 end
 
 

@@ -2,7 +2,7 @@ module Transport # submodule, included in DHG.jl
 
 export TransportModels
 export Reynolds_number, Prandtl_number
-export Nusselt_ChiltonCoburn ,friction_Churchill
+export Nusselt_ChiltonColburn ,friction_Churchill
 
 
 Base.@kwdef struct TransportModels{T1, T2}
@@ -24,11 +24,28 @@ end
 end
 
 
-@inline function Nusselt_ChiltonCoburn(friction_factor::Real, Reynolds_num::Real, Prandtl_num::Real)
+@inline function Nusselt_ChiltonColburn(friction_factor::Real, Reynolds_num::Real, Prandtl_num::Real)
     # -> Float64
-    # Chilton-Coburn analogy: model for Nusselt number in turbulent internal flow, forced convection.
+    # Chilton-Colburn analogy: model for Nusselt number in turbulent internal flow, forced convection.
     # Cengel, "Heat Transfer: A Practical Approach", 2nd ed., section 8-6
     return 0.125 * friction_factor * Reynolds_num * (Prandtl_num^(1/3))
+end
+
+
+@inline function Nusselt_Gnielinsky(friction_factor::Real, Reynolds_num::Real, Prandtl_num::Real)
+    # -> Float64
+    # Model for Nusselt number in turbulent internal flow, forced convection.
+    # Cengel, "Heat Transfer: A Practical Approach", 2nd ed., section 8-6, equation 8-70.
+    f_8 = friction_factor / 8.0
+    return (f_8 * (Reynolds_num - 1000.0) * Prandtl_num) / (1.0 + (12.7 * sqrt(f_8) * (Prandtl_num^(2/3) - 1.0)))
+end
+
+
+@inline function Nusselt_Colburn(_, Reynolds_num::Real, Prandtl_num::Real)
+    # -> Float64
+    # Colburn equation: model for Nusselt number in turbulent internal flow, forced convection.
+    # Cengel, "Heat Transfer: A Practical Approach", 2nd ed., section 8-6, equation 8-67
+    return 0.023 * (Reynolds_num^(0.8)) * (Prandtl_num^(1/3))
 end
 
 
