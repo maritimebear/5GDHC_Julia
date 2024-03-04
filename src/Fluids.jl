@@ -27,7 +27,12 @@ struct Water <: Fluid end
     R = 461.5 # Specific gas constant [J/kg-K]
 
     t = 1.0 - (temperature/T_c)
-    return R * (A/t + B + C*t + D*t^2 + E*t^3 + F*t^4)
+    # return R * (A/t + B + C*t + D*t^2 + E*t^3 + F*t^4)
+    value = R * (A/t + B + C*t + D*t^2 + E*t^3 + F*t^4)
+    if value < 0
+        throw("Cp: $value, T: $temperature")
+    end
+    return value
 end
 
 

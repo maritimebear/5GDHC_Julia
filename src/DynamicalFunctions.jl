@@ -113,6 +113,9 @@ function pipe(pipestruct::nc.Pipe,
             area_curved = pi * pipestruct.diameter * discretisation.dx # heat transfer area
             rel_roughness = pipestruct.roughness / pipestruct.diameter
             aspect_ratio = pipestruct.length / pipestruct.diameter
+            h_wall = 2.0 * 0.4 / 9.2e-3
+            A_log = pi * discretisation.dx * 9.2e-3 / log(50e-3 / 40.8e-3)
+            R_wall = 1.0 / (h_wall * A_log)
 
             # Get local parameters from Parameters struct
             density = p.density # density in parameters (not based on fluid_T) since constant, not a function of temperature
@@ -131,8 +134,21 @@ function pipe(pipestruct::nc.Pipe,
             Re = Transport.Reynolds_number(abs(velocity), density, diameter, dyn_visc)
             friction_factor = friction_model(Re, rel_roughness)
             Pr = Transport.Prandtl_number(dyn_visc, specific_heat, thermal_conductivity)
+
+            for (k, v) in zip(["mu", "k", "Cp", "Re", "f", "Pr"],
+                              [dyn_visc, thermal_conductivity, specific_heat, Re, friction_factor, Pr]
+                             )
+                v < 0 ? println("$k: $v") : nothing
+            end
+
             Nu = Nusselt_model(friction_factor, Re, Pr)
-            heat_transfer_coeff = Nu * thermal_conductivity / diameter # Nu = hD/k
+
+            # Overall heat transfer coefficient
+            h_convection = Nu * thermal_conductivity / diameter # Nu = hD/k
+            R_convection = 1.0 / (h_convection * area_curved)
+            R_total = R_wall + R_convection
+            UA_overall = 1.0 / R_total
+            # heat_transfer_coeff = 1e-5 * heat_transfer_coeff
 
             # Momentum equation
             deltaP = -sign(velocity) * friction_factor * aspect_ratio * dynamic_pressure
@@ -141,7 +157,9 @@ function pipe(pipestruct::nc.Pipe,
 
             # Energy equation
             @views convection = -(1 / dx) .* disc_scheme.convection(e[2:end], v_s[2], v_d[2], velocity)
-            @views source = (heat_transfer_coeff * area_curved) .* (T_ambient .- e[2:end])
+            # @views source = (heat_transfer_coeff * area_curved) .* (T_ambient .- e[2:end])
+            # @views source = (T_ambient .- e[2:end]) ./ R_total
+            @views source = UA_overall / (density * specific_heat) .* (T_ambient .- e[2:end])
 
             # Physics implementation
             # e[1] : mass flow rate, algebraic constraint
