@@ -17,6 +17,8 @@ import DifferentialEquations as de
 import SciMLNLSolve
 import Random
 
+import Plots as plt
+
 
 include("../src/DHG.jl")
 import .DHG
@@ -72,11 +74,8 @@ wall_roughness = 0.045e-3 # [m], Cengel and Cimbala
 ## Discretisation
 dxs = [initial_dx / (refinement_ratio ^ r) for r in 0:n_refinement_levels]
 
-convection_schemes = [DHG.Discretisation.upwind]
-discretisations = [DHG.Discretisation.FVM(dx=dx, convection=scheme)
-                   for scheme in convection_schemes # outer loop
-                   for dx in dxs
-                  ]
+convection_schemes = Dict("Upwind" => DHG.Discretisation.upwind,
+                         )
 
 
 ## Transport properties
@@ -119,37 +118,54 @@ edge_structs = (
 
 params = (density=density, T_ambient=T_ambient)
 
-results_dict = Dict{Int,
-                    NamedTuple{(:syms, :sol), Tuple{Vector{Symbol}, Vector{Float64}}}
-                   }()
+result_tuple_T = NamedTuple{(:syms, :sol),
+                            Tuple{Vector{Symbol}, Vector{Float64}}
+                           } # DataType: (syms=symbols vector, sol=solution vector)
+
+results = Dict{String,                      # convection scheme name
+               Vector{result_tuple_T}       # dx index => result
+              }() # Using Vector and not Dict(dx => result) to not use Floats as keys
 
 # Compare discretisation schemes
-for (i, discn) in enumerate(discretisations)
-    ## Set up problem
-    nd_fn, g = DHG.assemble(node_structs, edge_structs, transport_models, discn, fluid_T)
-        # nd_fn = nd.network_dynamics(collect(node_structs), collect(edge_structs), g)
+for (name, scheme) in convection_schemes
 
-    ## Initialise state vector: massflow states must be nonzero, required for node temperature calculation
-    #   number of massflow, pressure states constant; == n_nodes
-    #   number of temperature states depends on dx
-    initial_guess = DHG.Miscellaneous.initialise(nd_fn,
-                                                 (_) -> init_massflows, # massflows to init_massflow
-                                                 p_ref,                 # all pressures to p_ref
-                                                 T_ambient              # all temperatures to T_ambient
-                                                )
+    println("Convection scheme: $name")
+    results[name] = Vector{result_tuple_T}()
 
-    ## Solve for steady-state
-    print("Starting solve: dx = $(discn.dx)")
-    results_dict[i] = (syms=nd_fn.syms,
-                       sol=DHG.Miscellaneous.solve_steadystate(nd_fn, initial_guess, params, solver())
-                      )
-    println(" --- done")
+    for (idx_dx, dx) in enumerate(dxs)
+        discretisation = DHG.Discretisation.FVM(dx=dx, convection=scheme)
+
+        ## Set up problem
+        nd_fn, g = DHG.assemble(node_structs, edge_structs, transport_models, discretisation, fluid_T)
+            # nd_fn = nd.network_dynamics(collect(node_structs), collect(edge_structs), g)
+
+        ## Initialise state vector: massflow states must be nonzero, required for node temperature calculation
+        #   number of massflow and pressure states are constant; == n_nodes
+        #   number of temperature states depends on dx
+        initial_guess = DHG.Miscellaneous.initialise(nd_fn,
+                                                     (_) -> init_massflows, # massflows to init_massflow
+                                                     p_ref,                 # pressures to p_ref
+                                                     T_ambient              # temperatures to T_ambient
+                                                    )
+
+        ## Solve for steady-state
+        print("Starting solve: dx = $dx")
+        push!(results[name],
+              (syms=nd_fn.syms, sol=DHG.Miscellaneous.solve_steadystate(nd_fn, initial_guess, params, solver()))
+             )
+        println(" --- done")
+    end
 end
 
 
-
-function plot_pipe(result, edge_idx)
-    start_idx = findfirst((sym) -> (sym == Symbol("T_1_$(edge_idx)")), result.syms)
-    stop_idx = findfirst((sym) -> (sym == Symbol("T_end_$(edge_idx)")), result.syms)
-    return plt.plot(result.sol[start_idx:stop_idx])
+function plot_pipe_temp(scheme_name, dx_idx, edge_idx)
+    dx = dxs[dx_idx]
+    x = DHG.PostProcessing.cell_xs(edge_structs[edge_idx].length, dx)
+    # x = 0.0:dx:edge_structs[edge_idx].length
+    result = results[scheme_name][dx_idx]
+    return plt.plot!(x, result.sol[DHG.PostProcessing.edge_T_idxs(result.syms, edge_idx)],
+                     label="$scheme_name, dx=$dx", legendposition=:inline,
+                     xlabel="x [m]", ylabel="Temperature [K]",
+                     title="Temperature profile: edge #$edge_idx",
+                    )
 end
