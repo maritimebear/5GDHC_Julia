@@ -1,15 +1,13 @@
 module Miscellaneous
 
 import NetworkDynamics as nd
-import Graphs
-import GLMakie, GraphMakie
 import DifferentialEquations as de
 
 export solve_steadystate, solve_dynamic
 export PumpModel
 export set_idxs, initialise
 export solve_steadystate, solve_dynamic
-export adjacent_find, plot_graph
+export adjacent_find
 
 
 function PumpModel(massflow_ref1, deltaP_ref1, speed_ref1,
@@ -103,13 +101,6 @@ function initialise(nd_fn,
     end
 
     return initial_state
-end
-
-
-function plot_graph(g::Graphs.SimpleDiGraph)
-    # -> handle to plot
-    # Displays graph g with nodes and edges numbers (following implicit Graphs.jl ordering)
-    return GraphMakie.graphplot(g; ilabels=repr.(1:Graphs.nv(g)), elabels=repr.(1:Graphs.ne(g)))
 end
 
 

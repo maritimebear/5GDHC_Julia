@@ -17,8 +17,6 @@ import DifferentialEquations as de
 import SciMLNLSolve
 import Random
 
-import Plots as plt
-import GLMakie, GraphMakie
 
 include("../src/DHG.jl")
 import .DHG

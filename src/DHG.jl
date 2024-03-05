@@ -7,6 +7,7 @@ include("Miscellaneous.jl")
 include("NetworkComponents.jl")
 include("DynamicalFunctions.jl")
 include("WrapperFunctions.jl")
+include("PostProcessing.jl")
 
 # Imports from submodules to top-level namespace, for easier access from scripts
 import .NetworkComponents: Prosumer, JunctionNode, ReferenceNode, Pipe, PressureChange, Massflow
