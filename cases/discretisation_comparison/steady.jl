@@ -17,11 +17,12 @@ import DifferentialEquations as de
 import SciMLNLSolve
 import Random
 
-import Plots as plt
-
 
 include("../../src/DHG.jl")
 import .DHG
+
+include("./utils_discncomparison.jl")
+import .utils
 
 # TODO: actual values for pipe geometry, pump model, thermal controls
 
@@ -157,15 +158,7 @@ for (name, scheme) in convection_schemes
     end
 end
 
+node_Ts = [utils.get_states(DHG.PostProcessing.node_T_idxs, results, node_idx)
+           for (node_idx, _) in enumerate(node_structs)
+          ] # Temperature at each node across discn. schemes and dxs
 
-function plot_pipe_temp(scheme_name, dx_idx, edge_idx)
-    dx = dxs[dx_idx]
-    x = DHG.PostProcessing.cell_xs(edge_structs[edge_idx].length, dx)
-    # x = 0.0:dx:edge_structs[edge_idx].length
-    result = results[scheme_name][dx_idx]
-    return plt.plot!(x, result.sol[DHG.PostProcessing.edge_T_idxs(result.syms, edge_idx)],
-                     label="$scheme_name, dx=$dx", legendposition=:inline,
-                     xlabel="x [m]", ylabel="Temperature [K]",
-                     title="Temperature profile: edge #$edge_idx",
-                    )
-end
