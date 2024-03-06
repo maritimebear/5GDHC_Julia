@@ -17,6 +17,7 @@ import DifferentialEquations as de
 import SciMLNLSolve
 import Random
 
+import GLMakie as mk
 
 include("../../src/DHG.jl")
 import .DHG
@@ -32,7 +33,7 @@ Random.seed!(93851203598)
 solver = SciMLNLSolve.NLSolveJL
 initial_dx = 10.0 # [m]
 refinement_ratio = 2
-n_refinement_levels = 4
+n_refinement_levels = 6
 
 
 ## Fixed/reference values
@@ -158,8 +159,49 @@ for (name, scheme) in convection_schemes
     end
 end
 
+# Post-processing
+
 node_Ts = [utils.get_states(DHG.PostProcessing.node_T_idxs, results, node_idx) |>
            dict -> Dict(k => [v[1] for v in vs] for (k, vs) in dict) # Unpack 1-element Vector{Float64}
            for (node_idx, _) in enumerate(node_structs)
           ] # Temperature at each node across discn. schemes and dxs
 
+plot_x = [(i => dx) for (i, dx) in enumerate(dxs)]
+
+## Plots
+
+fig_nodeTs = mk.Figure()
+axes_nodeTs = [mk.Axis(fig_nodeTs[row, 1],
+                       xtickformat = xs -> ["1/$(2^Int(x))" for x in xs],
+                       yticks=mk.LinearTicks(3),
+                       # yminorticks=mk.IntervalsBetween(5), yminorticksvisible=true, yminorgridvisible=true,
+                       # yticks = mk.MultiplesTicks(5, 1e-3, "a"),
+                      ) for row in 1:4
+              ]
+
+lines_nodeTs = Dict(scheme_name => [mk.scatterlines!(axes_nodeTs[i],
+                                                     1:length(dxs), node_Ts[i][scheme_name],
+                                                     linestyle=:dash, marker=:circle,
+                                                    )
+                                    for (i, _) in enumerate(node_structs)
+                                   ]
+                    for (scheme_name, _) in convection_schemes
+                   )
+
+for (i, ax) in enumerate(axes_nodeTs)
+    # Inset titles for axes
+    mk.text!(ax,
+             1, 1, text="Node $i", font=:bold, #fontsize=11,
+             align=(:right, :top), space=:relative, offset=(-8, -4), justification=:right,
+            )
+end
+
+# Figure title
+axes_nodeTs[1].title = "Node temperatures vs. discretisation"
+
+# Axis labels as text to offset
+# mk.Label(fig_nodeTs[4, 2, mk.Bottom()], "test", halign=:left)
+# mk.text!(fig_nodeTs.scene, 0, 1, space=:relative,
+#          text="(cell size / base size)",
+#          align=(:right, :bottom), offset=(0, 0), justification=:right,
+#         )
