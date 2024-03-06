@@ -158,7 +158,8 @@ for (name, scheme) in convection_schemes
     end
 end
 
-node_Ts = [utils.get_states(DHG.PostProcessing.node_T_idxs, results, node_idx)
+node_Ts = [utils.get_states(DHG.PostProcessing.node_T_idxs, results, node_idx) |>
+           dict -> Dict(k => [v[1] for v in vs] for (k, vs) in dict) # Unpack 1-element Vector{Float64}
            for (node_idx, _) in enumerate(node_structs)
           ] # Temperature at each node across discn. schemes and dxs
 

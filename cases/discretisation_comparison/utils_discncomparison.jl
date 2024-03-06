@@ -6,7 +6,7 @@ import Plots as plt
 
 
 function get_states(getter_fn, results_dict, elem_idx)
-    # -> Dict{String, Vector{Float64}}: disc. scheme name => vector of element states at each dx
+    # -> Dict{String, Vector{T}}: disc. scheme name => vector of element states at each dx
     # getter_fn(syms, elem_idx) converts syms to idxs, elem can be node or edge
     return Dict(scheme_name => [result.sol[getter_fn(result.syms, elem_idx)]
                                 for result in results_vec
