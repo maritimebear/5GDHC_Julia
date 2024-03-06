@@ -8,7 +8,7 @@ import SciMLNLSolve
 import Plots as plt
 import GLMakie, GraphMakie
 
-include("../src/DHG.jl")
+include("../../src/DHG.jl")
 import .DHG
 
 include("./utils_perturb.jl")

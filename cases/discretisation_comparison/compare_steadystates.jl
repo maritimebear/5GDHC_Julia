@@ -20,7 +20,7 @@ import Random
 import Plots as plt
 
 
-include("../src/DHG.jl")
+include("../../src/DHG.jl")
 import .DHG
 
 # TODO: actual values for pipe geometry, pump model, thermal controls
