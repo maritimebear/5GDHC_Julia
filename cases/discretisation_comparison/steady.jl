@@ -33,7 +33,7 @@ Random.seed!(93851203598)
 solver = SciMLNLSolve.NLSolveJL
 initial_dx = 10.0 # [m]
 refinement_ratio = 2
-n_refinement_levels = 6
+n_refinement_levels = 2
 
 
 ## Fixed/reference values
@@ -159,6 +159,7 @@ for (name, scheme) in convection_schemes
     end
 end
 
+
 # Post-processing
 
 node_Ts = [utils.get_states(DHG.PostProcessing.node_T_idxs, results, node_idx) |>
@@ -166,12 +167,48 @@ node_Ts = [utils.get_states(DHG.PostProcessing.node_T_idxs, results, node_idx) |
            for (node_idx, _) in enumerate(node_structs)
           ] # Temperature at each node across discn. schemes and dxs
 
-plot_x = [(i => dx) for (i, dx) in enumerate(dxs)]
+
+## Grid Convergence -- relative errors, order of convergence, GCI
+
+node_errors = [Dict(scheme => [utils.relative_error(Ts_at_dx[i+1], Ts_at_dx[i]) # relative_error(finer, coarser)
+                                for (i, _) in enumerate(Ts_at_dx[1:end-1])
+                              ]
+                    for (scheme, Ts_at_dx) in Ts_dict
+                   )
+                for Ts_dict in node_Ts
+              ] # Relative error at each node across discn. schemes and (coarser dx, finer dx)
+
+println("\n\nGrid convergence report")
+println("-------------------------\n")
+println("Grid base size: $initial_dx\n\n")
+
+for (node_idx, _) in enumerate(node_Ts)
+    println("Node $node_idx:\n")
+    Ts_dict = node_Ts[node_idx]
+    errors_dict = node_errors[node_idx]
+    for (scheme, _) in Ts_dict
+        println("Scheme: $scheme\n")
+        for i in 1:3:(3 * div(length(dxs), 3, RoundDown)) # Order of convergence works on sets of 3 dxs
+            println("Refinement levels: $(collect(i-1:i+1))")
+            println("Grid sizes: $(dxs[i:i+2])")
+            p = utils.order_convergence(Ts_dict[scheme][i:i+2], refinement_ratio)
+            GCIs = [utils.GCI_fine(errors_dict[scheme][i], refinement_ratio, p),
+                    utils.GCI_fine(errors_dict[scheme][i+1], refinement_ratio, p)
+                   ]
+            println("Order of convergence: $p")
+            @show GCIs
+            println("\nAsymptotic convergence check: \
+                    (GCI ratio / r^p) = $(GCIs[1] / (GCIs[2] * refinement_ratio^p))\n")
+        end
+        println("\n")
+    end
+end
 
 ## Plots
 
 fig_nodeTs = mk.Figure()
 axes_nodeTs = [mk.Axis(fig_nodeTs[row, 1],
+                       xticks = collect(0:n_refinement_levels),
                        xtickformat = xs -> ["1/$(2^Int(x))" for x in xs],
                        yticks=mk.LinearTicks(3),
                        # yminorticks=mk.IntervalsBetween(5), yminorticksvisible=true, yminorgridvisible=true,
@@ -180,7 +217,9 @@ axes_nodeTs = [mk.Axis(fig_nodeTs[row, 1],
               ]
 
 lines_nodeTs = Dict(scheme_name => [mk.scatterlines!(axes_nodeTs[i],
-                                                     1:length(dxs), node_Ts[i][scheme_name],
+                                                     0:n_refinement_levels, # x-axis
+                                                     node_Ts[i][scheme_name], # y-axis
+                                                     # node_errors[i][scheme_name],
                                                      linestyle=:dash, marker=:circle,
                                                     )
                                     for (i, _) in enumerate(node_structs)
@@ -196,8 +235,6 @@ for (i, ax) in enumerate(axes_nodeTs)
             )
 end
 
-# Figure title
-axes_nodeTs[1].title = "Node temperatures vs. discretisation"
 
 # Axis labels as text to offset
 # mk.Label(fig_nodeTs[4, 2, mk.Bottom()], "test", halign=:left)
