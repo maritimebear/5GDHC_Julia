@@ -53,8 +53,10 @@ wall_conductivity = 0.4 # [W/m-K]
 
 ## Prosumers: massflow, thermal power
 massflow = 0.3 # [kg/s], Hirsch and Nicolai
-producer_heatrate = 1e3 # [W]
-consumer_heatrate = -0.5e3 # [W]
+# producer_heatrate = 1e3 # [W]
+# consumer_heatrate = -0.5e3 # [W]
+consumer_heatrate = -25e3 # [W] Assuming temperature change across consumer = -20 K
+producer_heatrate = -(1.1 * consumer_heatrate) # [W] Assuming producer power = 110% of consumer power
 
 
 ## Pump model for producer
