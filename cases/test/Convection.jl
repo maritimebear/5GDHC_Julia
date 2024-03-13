@@ -11,7 +11,7 @@ import Graphs as gr
 import LinearAlgebra as la
 import Plots as plt
 
-include("../src/DHG.jl")
+include("../../src/DHG.jl")
 import .DHG.Discretisation
 
 
