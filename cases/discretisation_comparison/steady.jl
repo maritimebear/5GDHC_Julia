@@ -1,14 +1,16 @@
 # Script to compare steady-state solution for various discretisation schemes and grid sizings
-
-# Sources for reference values:
+#
+# References:
 #
 # Hirsch and Nicolai, "An efficient numerical solution method for detailed modelling of large
 #   5th generation district heating and cooling networks", 2022, Section 4.1, Case 1
 #
-# Cengel and Cimbala, "Fluid Mechanics: Fundamentals and Applications", 4th ed., table 8-2 (pg.371)
-#
 # Licklederer et al, "Thermohydraulic model of Smart Thermal Grids with bidirectional power flow
 #   between prosumers", 2021
+#
+# Rocha et al, "Internal surface roughness of plastic pipes for irrigation", 2017
+#
+# Dang et al, "Fifth generation district heating and cooling: A comprehensive survey", 2024
 
 
 import Graphs as gr
@@ -39,7 +41,7 @@ n_refinement_levels = 2
 ## Fixed/reference values
 n_nodes = 4
 init_massflows = rand(Float64, (n_nodes, )) # Initial values for massflow states
-T_ambient = 273.15 + 10.0 # [K]
+T_ambient = 273.15 + 5.0 # [K], Hirsch
 p_ref = 0.0 # [Pa], reference pressure
 
 
@@ -53,10 +55,8 @@ wall_conductivity = 0.4 # [W/m-K]
 
 ## Prosumers: massflow, thermal power
 massflow = 0.3 # [kg/s], Hirsch and Nicolai
-# producer_heatrate = 1e3 # [W]
-# consumer_heatrate = -0.5e3 # [W]
-consumer_heatrate = -25e3 # [W] Assuming temperature change across consumer = -20 K
-producer_heatrate = -(1.1 * consumer_heatrate) # [W] Assuming producer power = 110% of consumer power
+consumer_heatrate = -2.7e3 # [W] Assuming temperature change across consumer = -4 K [Hirsch]
+producer_heatrate = -(1.05* consumer_heatrate) # [W] Assuming heat loss in pipes = 5 to 20% of transmitted energy [Dang]
 
 
 ## Pump model for producer
@@ -66,13 +66,13 @@ pump_ref1 = (0.0, 40221.0, pump_nominalspeed) # (massflow [kg/s], deltaP [Pa], s
 pump_ref2 = (0.922, 0.0, pump_nominalspeed)
 
 
-## Material properties, water as fluid
-density = 1e3 # [kg/m^3]
-fluid_T = DHG.Fluids.Water
+## Material properties, taking propylene glycol (Propane-1,3-diol) as fluid [Hirsch]
+density = 1064.4 # [kg/m^3], value at 0°C, VDI Heat Atlas D3.1. Table 2 (pg 315)
+fluid_T = DHG.Fluids.PropyleneGlycol
 
 
-## Properties of pipe wall, taking steel as wall material
-wall_roughness = 0.045e-3 # [m], Cengel and Cimbala
+## Properties of pipe wall, polyethylene pipe [Hirsch]
+wall_roughness = 8.116e-6 # [m], Rocha
 
 
 ## Discretisation
