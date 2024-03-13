@@ -27,8 +27,8 @@ struct PropyleneGlycol <: Fluid end # Propane-1,3-diol
         # Values are for specific heat in [J/g-K], but specifying R in [J/kg-K]
         # effectively converts to [J/kg-K]
 
-    T_c = 647.096 # Critical temperature [K]
-    R = 461.5 # Specific gas constant [J/kg-K]
+    T_c = 647.10 # Critical temperature [K], VDI Heat Atlas D3.1. Table 1 (pg 302)
+    R = 461.402 # Specific gas constant [J/kg-K], R = R_universal [J/mol-K] / Molar mass [kg/mol]
 
     t = 1.0 - (T/T_c)
     return R * (A/t + B + C*t + D*t^2 + E*t^3 + F*t^4)
