@@ -3,12 +3,12 @@
 
 import Plots as plt
 
-include("../src/Fluids.jl")
+include("../../src/Fluids.jl")
 
 T_range = (0 + 273.15, 200 + 273.15) # [K]
 dT = 1.0 # [K]
 
-fluid = Fluids.Water
+fluid = Fluids.PropyleneGlycol
 density = 1e3 # [kg/m^3]
 
 
@@ -29,9 +29,17 @@ properties = Dict(name => Property(name, unit, fn.(fluid, T))
                   for (name, unit, fn) in zip(names, units, fns)
                  )::Dict{String, Property}
 
-for (name, prop) in properties
-    plt.plot!(T, prop.values, label=name,
-              legendposition=:inline, legendfontsize=8,
-             )
-end
+# for (name, prop) in properties
+#     plt.plot!(T, prop.values, label=name,
+#               legendposition=:inline, legendfontsize=8,
+#              )
+# end
+
+plots = [plt.plot(T, prop.values,
+                  label=name, legendposition=:inline, legendfontsize=8,
+                 ) for (name, prop) in properties
+        ]
+
+fig = plt.plot(plots..., layout = (length(plots), 1), )
+
 plt.xlabel!("Temperature [K]")
