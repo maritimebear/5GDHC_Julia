@@ -85,9 +85,8 @@ end
     # Dynamic viscosity [Pa-s] according to PPDS equation:
     # VDI Heat Atlas (2010), section D.3.1
 
-    T = clamp(temperature, 273.15, 150.0 + 273.15)
-        # Lower limit set to 0°C as this is within the expected temperature range for 5GDHCs,
-        # upper limit from VDI Heat Atlas (2010), D3.1. Table 7 (pg. 357)
+    T = clamp(temperature, 50.0 + 273.15, 150.0 + 273.15)
+        # Limits from VDI Heat Atlas (2010), D3.1. Table 7 (pg. 357)
 
     A = 4.55501; B = 0.75893; C = 711.876; D = 132.080; E = 0.00000695;
         # VDI Heat Atlas (2010), D3.1. Table 7 (pg. 357)
