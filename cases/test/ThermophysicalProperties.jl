@@ -29,12 +29,6 @@ properties = Dict(name => Property(name, unit, fn.(fluid, T))
                   for (name, unit, fn) in zip(names, units, fns)
                  )::Dict{String, Property}
 
-# for (name, prop) in properties
-#     plt.plot!(T, prop.values, label=name,
-#               legendposition=:inline, legendfontsize=8,
-#              )
-# end
-
 plots = [plt.plot(T, prop.values,
                   label=name, legendposition=:inline, legendfontsize=8,
                  ) for (name, prop) in properties
