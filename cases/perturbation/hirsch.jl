@@ -1,4 +1,5 @@
 # Script to perturb steady-state solution, then study the time-evolution of the perturbed state
+# for various discretisation schemes and grid sizings
 #
 # References:
 #
@@ -32,7 +33,9 @@ solver_steady = SciMLNLSolve.NLSolveJL
 solver_dynamic = de.Rodas5
 
 ## Spatial discretisation
-dx = 10.0 # [m]
+initial_dx = 10.0 # [m]
+refinement_ratio = 2
+n_refinement_levels = 2
 
 ## Temporal discretisation
 time_interval = (0.0, 1 * 60 * 60.0) # [s]
@@ -84,6 +87,7 @@ wall_roughness = 8.116e-6 # [m], Rocha
 
 
 ## Interpolation schemes
+dxs = [initial_dx / (refinement_ratio ^ r) for r in 0:n_refinement_levels]
 convection_schemes = Dict("Upwind" => DHG.Discretisation.upwind,
                          )
 
@@ -146,111 +150,120 @@ Base.@kwdef struct Result # struct to hold results
 end
 
 
-results = Dict{String, Result}() # Interpolation scheme name => Result struct
+results = Dict{String,          # Convection scheme name
+               Vector{Result}   # dx index => result
+              }() # Using Vector and not Dict(dx => result) to not use Floats as keys
 
 
 # Compare discretisation schemes
 for (name, scheme) in convection_schemes
 
-    println("Convection scheme: $name, dx: $dx")
+    results[name] = Vector{Result}()
 
-    discretisation = DHG.Discretisation.FVM(dx=dx, convection=scheme)
+    for (_, dx) in enumerate(dxs)
 
-    ## Set up problem
-    nd_fn, g = DHG.assemble(node_structs, edge_structs, transport_models, discretisation, fluid_T)
-        # nd_fn = nd.network_dynamics(collect(node_structs), collect(edge_structs), g)
+        discretisation = DHG.Discretisation.FVM(dx=dx, convection=scheme)
+        println("\nConvection scheme: $name, dx = $dx")
 
-    ## Initialise state vector: massflow states must be nonzero, required for node temperature calculation
-    #   number of massflow and pressure states are constant; == n_nodes
-    #   number of temperature states depends on dx
-    initial_guess = DHG.Miscellaneous.initialise(nd_fn,
-                                                 (_) -> init_massflows, # massflows to init_massflow
-                                                 p_ref,                 # pressures to p_ref
-                                                 T_ambient              # temperatures to T_ambient
-                                                )
+        ## Set up problem
+        nd_fn, g = DHG.assemble(node_structs, edge_structs, transport_models, discretisation, fluid_T)
+            # nd_fn = nd.network_dynamics(collect(node_structs), collect(edge_structs), g)
 
-    ## Solve for steady-state
-    print("Starting steady-state solution")
-    sol_steady = DHG.Miscellaneous.solve_steadystate(nd_fn, initial_guess, params, solver_steady())
-    println(" --- done")
+        ## Initialise state vector: massflow states must be nonzero, required for node temperature calculation
+        #   number of massflow and pressure states are constant; == n_nodes
+        #   number of temperature states depends on dx
+        initial_guess = DHG.Miscellaneous.initialise(nd_fn,
+                                                     (_) -> init_massflows, # massflows to init_massflow
+                                                     p_ref,                 # pressures to p_ref
+                                                     T_ambient              # temperatures to T_ambient
+                                                    )
 
-    ## Perturb steady-state solution
-    idxs_to_perturb = [findfirst(==(sym), nd_fn.syms) for sym in syms_to_perturb]
-    u0_dynamic = Vector{Float64}(sol_steady.u)
+        ## Solve for steady-state
+        print("Starting steady-state solution")
+        sol_steady = DHG.Miscellaneous.solve_steadystate(nd_fn, initial_guess, params, solver_steady())
+        println(" --- done")
 
-    for (idx, rel_ptbn) in zip(idxs_to_perturb, perturbations_relative)
-        u0_dynamic[idx] *= (1.0 + rel_ptbn) # Apply perturbation
-        # @show (u0_dynamic[idx] - sol_steady.u[idx]) / sol_steady.u[idx] # TODO: Cleanup
-    end
+        ## Perturb steady-state solution
+        idxs_to_perturb = [findfirst(==(sym), nd_fn.syms) for sym in syms_to_perturb]
+        u0_dynamic = Vector{Float64}(sol_steady.u)
+
+        for (idx, rel_ptbn) in zip(idxs_to_perturb, perturbations_relative)
+            u0_dynamic[idx] *= (1.0 + rel_ptbn) # Apply perturbation
+            # @show (u0_dynamic[idx] - sol_steady.u[idx]) / sol_steady.u[idx] # TODO: Cleanup
+        end
 
 
-    ## Dynamic solution
-    print("Starting dynamic solution")
-    if max_CFL !== nothing
-        max_dt = max_CFL * dx / expected_velocity
-        print(", max dt = $max_dt")
-        sol_dynamic = DHG.Miscellaneous.solve_dynamic(nd_fn, u0_dynamic, params, solver_dynamic(),
-                                                      time_interval, saveat=saveinterval,
-                                                      dtmax=max_dt)
-    else # no limit on dt
-        sol_dynamic = DHG.Miscellaneous.solve_dynamic(nd_fn, u0_dynamic, params, solver_dynamic(),
-                                                      time_interval, saveat=saveinterval)
-    end
-    println(" --- done")
+        ## Dynamic solution
+        print("Starting dynamic solution")
+        if max_CFL !== nothing
+            max_dt = max_CFL * dx / expected_velocity
+            print(", max dt = $max_dt")
+            sol_dynamic = DHG.Miscellaneous.solve_dynamic(nd_fn, u0_dynamic, params, solver_dynamic(),
+                                                          time_interval, saveat=saveinterval,
+                                                          dtmax=max_dt)
+        else # no limit on dt
+            sol_dynamic = DHG.Miscellaneous.solve_dynamic(nd_fn, u0_dynamic, params, solver_dynamic(),
+                                                          time_interval, saveat=saveinterval)
+        end
+        println(" --- done")
 
-    # TODO: Cleanup
-    for (idx, rel_ptbn) in zip(idxs_to_perturb, perturbations_relative)
-        @show sol_dynamic.t[1]
-        @show sol_dynamic.u[1] == u0_dynamic
-        @show (sol_dynamic.u[1][idx] - sol_steady.u[idx]) / sol_steady.u[idx]
-    end
+        # TODO: Cleanup
+        # for (idx, rel_ptbn) in zip(idxs_to_perturb, perturbations_relative)
+        #     @show sol_dynamic.t[1]
+        #     @show sol_dynamic.u[1] == u0_dynamic
+        #     @show (sol_dynamic.u[1][idx] - sol_steady.u[idx]) / sol_steady.u[idx]
+        # end
 
-    results[name] = Result(syms=nd_fn.syms,
-                           steady=sol_steady.u,
-                           dynamic=(t=sol_dynamic.t, u=sol_dynamic.u)
-                          )
-end
+        push!(results[name],
+              Result(syms=nd_fn.syms,
+                     steady=sol_steady.u,
+                     dynamic=(t=sol_dynamic.t, u=sol_dynamic.u)
+                    )
+             )
+
+    end # loop over dxs
+end # loop over convection schemes
 
 
 # Post-processing
 
-## Set up figures and axes
-fig_trajectories = mk.Figure()
-axes_trajectories = [mk.Axis(fig_trajectories[row, 1],
-                            # yticks=mk.LinearTicks(3),
-                            # yminorticks=mk.IntervalsBetween(5), yminorticksvisible=true, yminorgridvisible=true,
-                            # yticks = mk.MultiplesTicks(5, 1e-3, "a"),
-                           ) for (row, _) in enumerate(syms_to_observe)
-                    ]
+# ## Set up figures and axes
+# fig_trajectories = mk.Figure()
+# axes_trajectories = [mk.Axis(fig_trajectories[row, 1],
+#                             # yticks=mk.LinearTicks(3),
+#                             # yminorticks=mk.IntervalsBetween(5), yminorticksvisible=true, yminorgridvisible=true,
+#                             # yticks = mk.MultiplesTicks(5, 1e-3, "a"),
+#                            ) for (row, _) in enumerate(syms_to_observe)
+#                     ]
 
-for (i, ax) in enumerate(axes_trajectories)
-    # Inset titles for axes
-    mk.text!(ax,
-             1, 1, text=String(syms_to_observe[i]), font=:bold, #fontsize=11,
-             align=(:right, :top), space=:relative, offset=(-8, -14), justification=:right,
-            )
-end
+# for (i, ax) in enumerate(axes_trajectories)
+#     # Inset titles for axes
+#     mk.text!(ax,
+#              1, 1, text=String(syms_to_observe[i]), font=:bold, #fontsize=11,
+#              align=(:right, :top), space=:relative, offset=(-8, -14), justification=:right,
+#             )
+# end
 
 
-## Calculate values of interest and plot
-for (scheme, result) in results
+# ## Calculate values of interest and plot
+# for (scheme, result) in results
 
-    idxs_to_observe = [findfirst(==(sym), result.syms) for sym in syms_to_observe]
+#     idxs_to_observe = [findfirst(==(sym), result.syms) for sym in syms_to_observe]
 
-    states_steady = [result.steady[idx] for idx in idxs_to_observe]::Vector{Float64}
-    states_dynamic = [[_u[idx] for _u in result.dynamic.u] for idx in idxs_to_observe]::Vector{Vector{Float64}}
+#     states_steady = [result.steady[idx] for idx in idxs_to_observe]::Vector{Float64}
+#     states_dynamic = [[_u[idx] for _u in result.dynamic.u] for idx in idxs_to_observe]::Vector{Vector{Float64}}
 
-    errors_states = [(u .- u0) ./ u0 for (u, u0) in zip(states_dynamic, states_steady)]::Vector{Vector{Float64}}
+#     errors_states = [(u .- u0) ./ u0 for (u, u0) in zip(states_dynamic, states_steady)]::Vector{Vector{Float64}}
 
-    # errors_states = [(u .- result.steady[idx]) ./ result.steady[idx]
-    #                  for (u, idx) in zip(states_dynamic, idxs_to_observe)
-    #                 ]::Vector{Vector{Float64}}
+#     # errors_states = [(u .- result.steady[idx]) ./ result.steady[idx]
+#     #                  for (u, idx) in zip(states_dynamic, idxs_to_observe)
+#     #                 ]::Vector{Vector{Float64}}
 
-    for (i, _) in enumerate(idxs_to_observe)
-        _ = mk.lines!(axes_trajectories[i],
-                      result.dynamic.t, # x-axis
-                      errors_states[i], # y-axis
-                     ) 
-    end
+#     for (i, _) in enumerate(idxs_to_observe)
+#         _ = mk.lines!(axes_trajectories[i],
+#                       result.dynamic.t, # x-axis
+#                       errors_states[i], # y-axis
+#                      )
+#     end
 
-end
+# end
