@@ -112,21 +112,22 @@ function check_retcode(solution, solvername)
 end
 
 
-function solve_steadystate(f, x0, p, solver)
+function solve_steadystate(f, x0, p, solver; kwargs...)
     # -> de.solve(de.SteadyStateProblem, solver) type
     # Wrapper to make main script more readable
     prob = de.SteadyStateProblem(f, x0, p)
-    sol = de.solve(prob, solver)
+    sol = de.solve(prob, solver; kwargs...)
     check_retcode(sol, "steady-state solver")
     return sol
 end
 
 
-function solve_dynamic(f, x0, p, solver, time_interval, save_times=[])
+function solve_dynamic(f, x0, p, solver, time_interval; kwargs...)
     # -> de.solve(de.ODEProblem, solver, saveat=save_times) type
     # Wrapper to make main script more readable
     prob = de.ODEProblem(f, x0, time_interval, p)
-    sol = de.solve(prob, solver, saveat=save_times)
+    sol = de.solve(prob, solver; kwargs... #saveat=save_times
+                  )
     check_retcode(sol, "dynamic solver")
     return sol
 end

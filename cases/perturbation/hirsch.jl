@@ -30,9 +30,14 @@ import .DHG
 Random.seed!(93851203598)
 solver_steady = SciMLNLSolve.NLSolveJL
 solver_dynamic = de.Rodas5
+
+## Spatial discretisation
+dx = 10.0 # [m]
+
+## Temporal discretisation
 time_interval = (0.0, 1 * 60 * 60.0) # [s]
 saveinterval = 1.0 # [s]
-dx = 10.0 # [m]
+max_CFL = 1.0 # limits maximum timstep, set to nothing to disable constraint
 
 
 ## Perturbation
@@ -125,6 +130,7 @@ if size(syms_to_perturb) != size(perturbations_relative)
     error("Sizes of syms_to_perturb, perturbations_relative must be the same")
 end
 
+expected_velocity = massflow / (density * 0.25 * pi * pipe_innerdiameter^2)
 
 params = (density=density, T_ambient=T_ambient)
 
@@ -180,8 +186,16 @@ for (name, scheme) in convection_schemes
 
     ## Dynamic solution
     print("Starting dynamic solution")
-    sol_dynamic = DHG.Miscellaneous.solve_dynamic(nd_fn, u0_dynamic, params, solver_dynamic(),
-                                                  time_interval, saveinterval)
+    if max_CFL !== nothing
+        max_dt = max_CFL * dx / expected_velocity
+        print(", max dt = $max_dt")
+        sol_dynamic = DHG.Miscellaneous.solve_dynamic(nd_fn, u0_dynamic, params, solver_dynamic(),
+                                                      time_interval, saveat=saveinterval,
+                                                      dtmax=max_dt)
+    else # no limit on dt
+        sol_dynamic = DHG.Miscellaneous.solve_dynamic(nd_fn, u0_dynamic, params, solver_dynamic(),
+                                                      time_interval, saveat=saveinterval)
+    end
     println(" --- done")
 
     # TODO: Cleanup
