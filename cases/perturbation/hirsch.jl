@@ -136,30 +136,30 @@ end
 
 expected_velocity = massflow / (density * 0.25 * pi * pipe_innerdiameter^2)
 
+n_savetimes = Int((time_interval[2] - time_interval[1]) / saveinterval) + 1
+
 params = (density=density, T_ambient=T_ambient)
 
-dynsol_tuple_T = NamedTuple{(:t, :u),
-                            Tuple{Vector{Float64}, Vector{Vector{Float64}}}
-                           } # DataType: (t = timesteps, u = state values)
 
+states_steady = Dict(name =>                                    # convection scheme name
+                     Vector{Vector{Float64}}()                  # dx index => nodal temperatures
+                     for (name, _) in convection_schemes
+                    )::Dict{String, Vector{Vector{Float64}}}
+    # Using Vector and not Dict(dx => result) to not use Floats as keys
 
-Base.@kwdef struct Result # struct to hold results
-    syms::Vector{Symbol}
-    steady::Vector{Float64}
-    dynamic::dynsol_tuple_T
-end
+# states_dynamic = Dict(name => Vector{Vector{Float64}}()
+#                       for (name, _) in convection_schemes
+#                      )::typeof(states_steady)
 
+states_dynamic = Dict(name =>
+                      Vector{Array{Float64, 2}}() # dx index => Array(nodal temperature, timestep)
+                      for (name, _) in convection_schemes
+                     )
 
-results = Dict{String,          # Convection scheme name
-               Vector{Result}   # dx index => result
-              }() # Using Vector and not Dict(dx => result) to not use Floats as keys
 
 
 # Compare discretisation schemes
 for (name, scheme) in convection_schemes
-
-    results[name] = Vector{Result}()
-
     for (_, dx) in enumerate(dxs)
 
         discretisation = DHG.Discretisation.FVM(dx=dx, convection=scheme)
@@ -168,6 +168,11 @@ for (name, scheme) in convection_schemes
         ## Set up problem
         nd_fn, g = DHG.assemble(node_structs, edge_structs, transport_models, discretisation, fluid_T)
             # nd_fn = nd.network_dynamics(collect(node_structs), collect(edge_structs), g)
+
+        ## Calculate indices of nodal temperatures: constant for a given (scheme, dx)
+        nodeT_idxs = [DHG.PostProcessing.node_T_idxs(nd_fn.syms, node_idx)[1] # unpack 1-element vector
+                      for node_idx in 1:length(node_structs)
+                     ]
 
         ## Initialise state vector: massflow states must be nonzero, required for node temperature calculation
         #   number of massflow and pressure states are constant; == n_nodes
@@ -182,6 +187,9 @@ for (name, scheme) in convection_schemes
         print("Starting steady-state solution")
         sol_steady = DHG.Miscellaneous.solve_steadystate(nd_fn, initial_guess, params, solver_steady())
         println(" --- done")
+
+        ## Save node temperatures at steady state
+        state_steady = [sol_steady[idx] for idx in nodeT_idxs]
 
         ## Perturb steady-state solution
         idxs_to_perturb = [findfirst(==(sym), nd_fn.syms) for sym in syms_to_perturb]
@@ -207,6 +215,19 @@ for (name, scheme) in convection_schemes
         end
         println(" --- done")
 
+        ## Save node temperatures at final dynamic state
+        # state_dynamic = [sol_dynamic[end][idx] for idx in nodeT_idxs]
+        @show length(sol_dynamic)
+        state_dynamic = [sol_dynamic[time_idx][nodeT_idx]
+                         for nodeT_idx in nodeT_idxs, time_idx in 1:length(sol_dynamic)
+                        ]
+
+        # TODO: check difference between state_steady and state_dynamic, assert error < threshold?
+
+        push!(states_steady[name], state_steady)
+        push!(states_dynamic[name], state_dynamic)
+
+
         # TODO: Cleanup
         # for (idx, rel_ptbn) in zip(idxs_to_perturb, perturbations_relative)
         #     @show sol_dynamic.t[1]
@@ -214,18 +235,36 @@ for (name, scheme) in convection_schemes
         #     @show (sol_dynamic.u[1][idx] - sol_steady.u[idx]) / sol_steady.u[idx]
         # end
 
-        push!(results[name],
-              Result(syms=nd_fn.syms,
-                     steady=sol_steady.u,
-                     dynamic=(t=sol_dynamic.t, u=sol_dynamic.u)
-                    )
-             )
+        # push!(results[name],
+        #       Result(syms=nd_fn.syms,
+        #              steady=sol_steady.u,
+        #              dynamic=(t=sol_dynamic.t, u=sol_dynamic.u)
+        #             )
+        #      )
 
     end # loop over dxs
 end # loop over convection schemes
 
 
 # Post-processing
+
+
+# for (scheme, dx_vec) in states_steady
+#     diffs = [dx_vec[i+1] .- dx_vec[i] for i in 1:(length(dx_vec)-1)]
+# end
+
+
+statediffs_steady = Dict(scheme => [dx_vec[i+1] .- dx_vec[i] for i in 1:(length(dx_vec)-1)]
+                         for (scheme, dx_vec) in states_steady
+                        )
+
+statediffs_dynamic = Dict(scheme => [dx_vec[i+1] .- dx_vec[i] for i in 1:(length(dx_vec)-1)]
+                         for (scheme, dx_vec) in states_dynamic
+                        )
+
+
+
+
 
 # ## Set up figures and axes
 # fig_trajectories = mk.Figure()
