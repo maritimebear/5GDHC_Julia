@@ -42,8 +42,8 @@ function linear(phi::AbstractVector, phi_W, phi_E, u)
     # Expects phi::Vector, where each element contains the value of phi in a finite-volume cell
     # Returns vector of results for each cell
     result = similar(phi)
-    result[1] = 0.5 * (phi[1] + phi[2]) - phi_W # West boundary
-    result[end] = -0.5 * (phi[end-1] + phi[end]) + phi_E # East boundary
+    result[1] = 0.5 * (phi[1] + phi[2]) - phi_W # West boundary, Dirichlet BC: phi(west face) = phi_W
+    result[end] = 0.5 * (phi[end] - phi[end-1]) # East boundary, Neumann BC: dphi/dx = 0 at east face
     for i in 2:(length(phi) - 1) # Interior
         result[i] = 0.5 * (phi[i+1] - phi[i-1])
     end
