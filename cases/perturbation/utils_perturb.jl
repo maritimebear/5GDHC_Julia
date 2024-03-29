@@ -2,29 +2,58 @@
 
 module Utils_Perturb
 
-import DifferentialEquations as de
-import LinearAlgebra as la
-import Plots as plt
+export Polynomial_Tuple, PiecewisePolynomial, evalpiecewise
 
-export error_norms, plot_errornorms
 
-function error_norms(dynamic_solutions::Vector{Vector{Float64}}, reference_solution::Vector{Float64})
-    # -> Vector{Float64}
-    # Calculates 2-norms of error for each Vector{Float64} in dynamic_solutions
-    return [la.norm(x - reference_solution) for x in dynamic_solutions]::Vector{Float64}
+# Piecewise polynomials for prosumer controls
+
+## "Performant piecewise function evaluation"
+## https://discourse.julialang.org/t/performant-piecewise-function-evaluation/45762/3
+## Answer by 'lucas711642'
+
+struct Polynomial_Tuple{N, T <: Real}
+	p::NTuple{N, T} # Polynomial coefficients: (c0, c1, c2, ...) for y = c0 + c1*x + c2*x^2 + ...
 end
 
 
-function plot_errornorms(time_vec::Vector{Float64}, errornorms::Vector{Float64}, title::AbstractString)
-    # -> handle to plot
-    # Convenience function adding labels etc. to plots
-    p = plt.plot(time_vec, errornorms,
-                 xlabel="time (s)",
-                 ylabel="2-norm of error",
-                 title=title,
-                 yaxis=:log,
-                )
-    return p
+function (poly::Polynomial_Tuple)(x)
+    return evalpoly(x, poly.p)
 end
+
+
+struct PiecewisePolynomial{N, P<:Polynomial_Tuple, T<:Real} <: Function
+    polynomials::Vector{P} # Polynomial coefficients for each piece: [(c0, c1, c2, ...), ...]
+    breakpoints::Vector{T} # Intersection points between each piece
+	function PiecewisePolynomial{N}(polynomials::Vector{P}, breakpoints::Vector{T}) where {N, P <: Polynomial_Tuple, T <: Real}
+		@assert length(polynomials) == N + 1 # Retain @assert here, let compiler decide whether to check
+		@assert length(breakpoints) == N
+		@assert issorted(breakpoints)
+		new{N, P, T}(polynomials, breakpoints)
+	end
+end
+
+
+function (p::PiecewisePolynomial{N})(x) where N
+    return evalpiecewise(Val(N), p.polynomials, p.breakpoints, x)
+end
+
+
+function evalpiecewise(::Val{N}, functions, breakpoints, x) where N
+	if @generated
+		generator = (:(if x < breakpoints[$k]
+			return functions[$k](x)
+		end) for k = 1 : N)
+		quote
+			@inbounds begin
+				$(generator...)
+				return functions[$(N + 1)](x)
+			end
+		end
+	else
+		ind = searchsortedfirst(breakpoints, x)
+		return functions[ind](x)
+	end
+end
+
 
 end # module
