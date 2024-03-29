@@ -13,9 +13,6 @@
 # Dang et al, "Fifth generation district heating and cooling: A comprehensive survey", 2024
 
 
-import Graphs as gr
-import NetworkDynamics as nd
-import DifferentialEquations as de
 import SciMLNLSolve
 import Random
 
@@ -141,7 +138,7 @@ for (name, scheme) in convection_schemes
 
         ## Set up problem
         nd_fn, g = DHG.assemble(node_structs, edge_structs, transport_models, discretisation, fluid_T)
-            # nd_fn = nd.network_dynamics(collect(node_structs), collect(edge_structs), g)
+            # nd_fn = NetworkDynamics.network_dynamics(collect(node_structs), collect(edge_structs), g)
 
         ## Initialise state vector: massflow states must be nonzero, required for node temperature calculation
         #   number of massflow and pressure states are constant; == n_nodes
@@ -236,11 +233,3 @@ for (i, ax) in enumerate(axes_nodeTs)
              align=(:right, :top), space=:relative, offset=(-8, -4), justification=:right,
             )
 end
-
-
-# Axis labels as text to offset
-# mk.Label(fig_nodeTs[4, 2, mk.Bottom()], "test", halign=:left)
-# mk.text!(fig_nodeTs.scene, 0, 1, space=:relative,
-#          text="(cell size / base size)",
-#          align=(:right, :bottom), offset=(0, 0), justification=:right,
-#         )
