@@ -65,7 +65,6 @@ wall_conductivity = 0.4 # [W/m-K]
 ## Prosumers: massflow, thermal power
 massflow = 0.3 # [kg/s], Hirsch and Nicolai
 consumer_heatrate = -2.7e3 # [W] Assuming temperature change across consumer = -4 K [Hirsch]
-producer_heatrate = -(1.05* consumer_heatrate) # [W] Assuming heat loss in pipes = 5 to 20% of transmitted energy [Dang]
 
 
 ## Pump model for producer
@@ -102,7 +101,7 @@ consumer_thmctrl = (t) -> (consumer_heatrate)
 
 producer_hydctrl = (t) -> (pump_nominalspeed)
 producer_hydchar = DHG.Miscellaneous.PumpModel(pump_ref1..., pump_ref2..., density, pump_nominalspeed)
-producer_thmctrl = (t) -> (producer_heatrate)
+producer_thmctrl = (t) -> (-1.05 * consumer_thmctrl(t)) # Assuming heat loss in pipes = 5 to 20% of transmitted energy [Dang]
 
 
 ## Network structure
