@@ -21,6 +21,7 @@ import SciMLNLSolve
 import Random
 
 import GLMakie as mk
+import Plots as plt
 
 include("../../src/DHG.jl")
 import .DHG
@@ -35,7 +36,7 @@ solver_dynamic = de.Rodas5
 ## Spatial discretisation
 initial_dx = 10.0 # [m]
 refinement_ratio = 2
-n_refinement_levels = 2
+n_refinement_levels = 3
 
 ## Temporal discretisation
 time_interval = (0.0, 1 * 60 * 60.0) # [s]
@@ -258,11 +259,25 @@ statediffs_steady = Dict(scheme => [dx_vec[i+1] .- dx_vec[i] for i in 1:(length(
                          for (scheme, dx_vec) in states_steady
                         )
 
-statediffs_dynamic = Dict(scheme => [dx_vec[i+1] .- dx_vec[i] for i in 1:(length(dx_vec)-1)]
-                         for (scheme, dx_vec) in states_dynamic
+statediffs_dynamic = Dict(scheme => [dx_mat[i+1] .- dx_mat[i] for i in 1:(length(dx_mat)-1)]
+                         for (scheme, dx_mat) in states_dynamic
                         )
 
+# node_Es = [abs.(statediffs_dynamic["Upwind"][i][3, :]) for i in 1:n_refinement_levels]
+# times = time_interval[1]:saveinterval:time_interval[2]
+# p = plt.plot(times, node_Es[1])
+# for v in node_Es[2:end]
+#     p = plt.plot!(times, v)
+# end
+# display(p)
 
+node_Ts = [states_dynamic["Upwind"][i][3, :] for i in 1:length(dxs)]
+times = time_interval[1]:saveinterval:time_interval[2]
+p = plt.plot(times, node_Ts[1])
+for v in node_Ts[2:end]
+    plt.plot!(times, v)
+end
+display(p)
 
 
 
