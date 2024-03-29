@@ -14,13 +14,10 @@
 # Dang et al, "Fifth generation district heating and cooling: A comprehensive survey", 2024
 
 
-# import Graphs as gr
-# import NetworkDynamics as nd
 import DifferentialEquations as de
 import SciMLNLSolve
 import Random
 
-import GLMakie as mk
 import Plots as plt
 
 include("../../src/DHG.jl")
@@ -148,9 +145,6 @@ states_steady = Dict(name =>                                    # convection sch
                     )::Dict{String, Vector{Vector{Float64}}}
     # Using Vector and not Dict(dx => result) to not use Floats as keys
 
-# states_dynamic = Dict(name => Vector{Vector{Float64}}()
-#                       for (name, _) in convection_schemes
-#                      )::typeof(states_steady)
 
 states_dynamic = Dict(name =>
                       Vector{Array{Float64, 2}}() # dx index => Array(nodal temperature, timestep)
@@ -198,9 +192,7 @@ for (name, scheme) in convection_schemes
 
         for (idx, rel_ptbn) in zip(idxs_to_perturb, perturbations_relative)
             u0_dynamic[idx] *= (1.0 + rel_ptbn) # Apply perturbation
-            # @show (u0_dynamic[idx] - sol_steady.u[idx]) / sol_steady.u[idx] # TODO: Cleanup
         end
-
 
         ## Dynamic solution
         print("Starting dynamic solution")
@@ -217,43 +209,18 @@ for (name, scheme) in convection_schemes
         println(" --- done")
 
         ## Save node temperatures at final dynamic state
-        # state_dynamic = [sol_dynamic[end][idx] for idx in nodeT_idxs]
-        @show length(sol_dynamic)
         state_dynamic = [sol_dynamic[time_idx][nodeT_idx]
                          for nodeT_idx in nodeT_idxs, time_idx in 1:length(sol_dynamic)
                         ]
 
-        # TODO: check difference between state_steady and state_dynamic, assert error < threshold?
-
         push!(states_steady[name], state_steady)
         push!(states_dynamic[name], state_dynamic)
-
-
-        # TODO: Cleanup
-        # for (idx, rel_ptbn) in zip(idxs_to_perturb, perturbations_relative)
-        #     @show sol_dynamic.t[1]
-        #     @show sol_dynamic.u[1] == u0_dynamic
-        #     @show (sol_dynamic.u[1][idx] - sol_steady.u[idx]) / sol_steady.u[idx]
-        # end
-
-        # push!(results[name],
-        #       Result(syms=nd_fn.syms,
-        #              steady=sol_steady.u,
-        #              dynamic=(t=sol_dynamic.t, u=sol_dynamic.u)
-        #             )
-        #      )
 
     end # loop over dxs
 end # loop over convection schemes
 
 
 # Post-processing
-
-
-# for (scheme, dx_vec) in states_steady
-#     diffs = [dx_vec[i+1] .- dx_vec[i] for i in 1:(length(dx_vec)-1)]
-# end
-
 
 statediffs_steady = Dict(scheme => [dx_vec[i+1] .- dx_vec[i] for i in 1:(length(dx_vec)-1)]
                          for (scheme, dx_vec) in states_steady
@@ -278,46 +245,3 @@ for v in node_Ts[2:end]
     plt.plot!(times, v)
 end
 display(p)
-
-
-
-# ## Set up figures and axes
-# fig_trajectories = mk.Figure()
-# axes_trajectories = [mk.Axis(fig_trajectories[row, 1],
-#                             # yticks=mk.LinearTicks(3),
-#                             # yminorticks=mk.IntervalsBetween(5), yminorticksvisible=true, yminorgridvisible=true,
-#                             # yticks = mk.MultiplesTicks(5, 1e-3, "a"),
-#                            ) for (row, _) in enumerate(syms_to_observe)
-#                     ]
-
-# for (i, ax) in enumerate(axes_trajectories)
-#     # Inset titles for axes
-#     mk.text!(ax,
-#              1, 1, text=String(syms_to_observe[i]), font=:bold, #fontsize=11,
-#              align=(:right, :top), space=:relative, offset=(-8, -14), justification=:right,
-#             )
-# end
-
-
-# ## Calculate values of interest and plot
-# for (scheme, result) in results
-
-#     idxs_to_observe = [findfirst(==(sym), result.syms) for sym in syms_to_observe]
-
-#     states_steady = [result.steady[idx] for idx in idxs_to_observe]::Vector{Float64}
-#     states_dynamic = [[_u[idx] for _u in result.dynamic.u] for idx in idxs_to_observe]::Vector{Vector{Float64}}
-
-#     errors_states = [(u .- u0) ./ u0 for (u, u0) in zip(states_dynamic, states_steady)]::Vector{Vector{Float64}}
-
-#     # errors_states = [(u .- result.steady[idx]) ./ result.steady[idx]
-#     #                  for (u, idx) in zip(states_dynamic, idxs_to_observe)
-#     #                 ]::Vector{Vector{Float64}}
-
-#     for (i, _) in enumerate(idxs_to_observe)
-#         _ = mk.lines!(axes_trajectories[i],
-#                       result.dynamic.t, # x-axis
-#                       errors_states[i], # y-axis
-#                      )
-#     end
-
-# end
