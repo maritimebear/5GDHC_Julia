@@ -13,9 +13,6 @@
 # Dang et al, "Fifth generation district heating and cooling: A comprehensive survey", 2024
 
 
-import Graphs as gr
-import NetworkDynamics as nd
-import DifferentialEquations as de
 import SciMLNLSolve
 import Random
 
@@ -56,7 +53,6 @@ wall_conductivity = 0.4 # [W/m-K]
 ## Prosumers: massflow, thermal power
 massflow = 0.3 # [kg/s], Hirsch and Nicolai
 consumer_heatrate = -2.7e3 # [W] Assuming temperature change across consumer = -4 K [Hirsch]
-producer_heatrate = -(1.05* consumer_heatrate) # [W] Assuming heat loss in pipes = 5 to 20% of transmitted energy [Dang]
 
 
 ## Pump model for producer
@@ -94,7 +90,7 @@ consumer_thmctrl = (t) -> (consumer_heatrate)
 
 producer_hydctrl = (t) -> (pump_nominalspeed)
 producer_hydchar = DHG.Miscellaneous.PumpModel(pump_ref1..., pump_ref2..., density, pump_nominalspeed)
-producer_thmctrl = (t) -> (producer_heatrate)
+producer_thmctrl = (t) -> (-1.05 * consumer_thmctrl(t)) # Assuming heat loss in pipes = 5 to 20% of transmitted energy [Dang]
 
 
 ## Network structure
@@ -141,7 +137,7 @@ for (name, scheme) in convection_schemes
 
         ## Set up problem
         nd_fn, g = DHG.assemble(node_structs, edge_structs, transport_models, discretisation, fluid_T)
-            # nd_fn = nd.network_dynamics(collect(node_structs), collect(edge_structs), g)
+            # nd_fn = NetworkDynamics.network_dynamics(collect(node_structs), collect(edge_structs), g)
 
         ## Initialise state vector: massflow states must be nonzero, required for node temperature calculation
         #   number of massflow and pressure states are constant; == n_nodes
@@ -236,11 +232,3 @@ for (i, ax) in enumerate(axes_nodeTs)
              align=(:right, :top), space=:relative, offset=(-8, -4), justification=:right,
             )
 end
-
-
-# Axis labels as text to offset
-# mk.Label(fig_nodeTs[4, 2, mk.Bottom()], "test", halign=:left)
-# mk.text!(fig_nodeTs.scene, 0, 1, space=:relative,
-#          text="(cell size / base size)",
-#          align=(:right, :bottom), offset=(0, 0), justification=:right,
-#         )
