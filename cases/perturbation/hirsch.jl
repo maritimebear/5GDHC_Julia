@@ -254,10 +254,26 @@ statediffs_dynamic = Dict(scheme => [dx_mat[i+1] .- dx_mat[i] for i in 1:(length
 # end
 # display(p)
 
-node_Ts = [states_dynamic["Upwind"][i][3, :] for i in 1:length(dxs)]
+# node_Ts = [states_dynamic["Upwind"][i][3, :] for i in 1:length(dxs)]
+# times = time_interval[1]:saveinterval:time_interval[2]
+# p = plt.plot(times, node_Ts[1])
+# for v in node_Ts[2:end]
+#     plt.plot!(times, v)
+# end
+# display(p)
+
+
 times = time_interval[1]:saveinterval:time_interval[2]
-p = plt.plot(times, node_Ts[1])
-for v in node_Ts[2:end]
-    plt.plot!(times, v)
-end
-display(p)
+ps = [plt.plot(times, [states_dynamic["Upwind"][dx_idx][node_idx, :] for dx_idx in 1:length(dxs)],
+               # label="dx: $(dxs[dx_idx])",
+               legendposition=:inline,
+               legendfontsize=3,
+              )
+      for node_idx in 1:length(node_structs)
+     ]
+pp = plt.plot(ps...,
+              layout=4,
+              title=reshape(["Node $i" for i in 1:length(ps)], (1, length(ps))),
+              titlefontsize=8,
+             )
+display(pp)
