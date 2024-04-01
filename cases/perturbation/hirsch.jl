@@ -1,5 +1,7 @@
-# Script to perturb steady-state solution, then study the time-evolution of the perturbed state
-# for various discretisation schemes and grid sizings
+# Script to study the time-evolution of the solution between set-points for various
+# discretisation schemes and grid sizings
+#
+# Find steady-state solution at initial set-point, then dynamic solution to new set-point
 #
 # References:
 #
@@ -23,6 +25,9 @@ import Plots as plt
 include("../../src/DHG.jl")
 import .DHG
 
+include("./utils_perturb.jl")
+import .Utils_Perturb as utils
+
 
 # --- Parameters ---- #
 
@@ -39,12 +44,6 @@ n_refinement_levels = 3
 time_interval = (0.0, 1 * 60 * 60.0) # [s]
 saveinterval = 1.0 # [s]
 max_CFL = 1.0 # limits maximum timstep, set to nothing to disable constraint
-
-
-## Perturbation
-syms_to_perturb = [:T_end_1]
-perturbations_relative = [0.01] # relative magnitudes
-syms_to_observe = [:T_3, :T_1]
 
 
 ## Fixed/reference values
@@ -64,7 +63,13 @@ wall_conductivity = 0.4 # [W/m-K]
 
 ## Prosumers: massflow, thermal power
 massflow = 0.3 # [kg/s], Hirsch and Nicolai
-consumer_heatrate = -2.7e3 # [W] Assuming temperature change across consumer = -4 K [Hirsch]
+
+
+## Set-point control
+consumer_power_sp1 = -2.7e3 # [W] Assuming temperature change across consumer = -4 K [Hirsch]
+consumer_power_sp2 = -5e3 # [W] New set-point
+sp_change_time = 10 * 60.0 # [s]
+ramp_duration = 1 * 60.0 # [s] Duration of (linear) transition between set-points
 
 
 ## Pump model for producer
@@ -97,11 +102,19 @@ transport_models = DHG.TransportModels(friction_factor=DHG.Transport.friction_Ch
 ## Prosumer functions
 consumer_hydctrl = (t) -> (massflow)
 consumer_hydchar = (ctrl_input, massflow) -> (ctrl_input) # Return control input unchanged
-consumer_thmctrl = (t) -> (consumer_heatrate)
 
 producer_hydctrl = (t) -> (pump_nominalspeed)
 producer_hydchar = DHG.Miscellaneous.PumpModel(pump_ref1..., pump_ref2..., density, pump_nominalspeed)
-producer_thmctrl = (t) -> (-1.05 * consumer_thmctrl(t)) # Assuming heat loss in pipes = 5 to 20% of transmitted energy [Dang]
+
+consumer_thmctrl_sp1 = (t) -> (consumer_power_sp1)
+consumer_thmctrl_sp2 = utils.piecewise_linear((-1.0, consumer_power_sp1),
+                                              (sp_change_time, consumer_power_sp1),
+                                              (sp_change_time + ramp_duration, consumer_power_sp2),
+                                              (ramp_duration + 1.0, consumer_power_sp2)
+                                             ) # Piecewise-linear ramp
+
+producer_thmctrl_sp1 = (t) -> (-1.05 * consumer_thmctrl_sp1(t)) # Assuming heat loss in pipes = 5 to 20% of transmitted energy [Dang]
+producer_thmctrl_sp2= (t) -> (-1.05 * consumer_thmctrl_sp2(t))
 
 
 ## Network structure
@@ -111,25 +124,33 @@ node_structs = (DHG.JunctionNode(),
                 DHG.ReferenceNode(p_ref),
                ) # Using tuples instead of Vectors: types are not uniform, network structure is constexpr
 
-edge_structs = (
-                DHG.Pipe(1, 3, # src, dst
-                         pipe_innerdiameter, pipe_outerdiameter, pipe_length,
-                         wall_roughness, wall_conductivity), # hot pipe
-                DHG.PressureChange(2, 1,
-                                   producer_hydctrl, producer_thmctrl, producer_hydchar), # producer
-                DHG.Massflow(3, 4,
-                             consumer_hydctrl, consumer_thmctrl, consumer_hydchar), # consumer
-                DHG.Pipe(4, 2,
-                         pipe_innerdiameter, pipe_outerdiameter, pipe_length,
-                         wall_roughness, wall_conductivity), # cold pipe
-               )
+edge_structs_sp1 = ( # Used by steady-state solver
+                    DHG.Pipe(1, 3, # src, dst
+                             pipe_innerdiameter, pipe_outerdiameter, pipe_length,
+                             wall_roughness, wall_conductivity), # hot pipe
+                    DHG.PressureChange(2, 1,
+                                       producer_hydctrl, producer_thmctrl_sp1, producer_hydchar), # producer
+                    DHG.Massflow(3, 4,
+                                 consumer_hydctrl, consumer_thmctrl_sp1, consumer_hydchar), # consumer
+                    DHG.Pipe(4, 2,
+                             pipe_innerdiameter, pipe_outerdiameter, pipe_length,
+                             wall_roughness, wall_conductivity), # cold pipe
+                   )
 
+edge_structs_sp2 = ( # Used by dynamic solver
+                    DHG.Pipe(1, 3, # src, dst
+                             pipe_innerdiameter, pipe_outerdiameter, pipe_length,
+                             wall_roughness, wall_conductivity), # hot pipe
+                    DHG.PressureChange(2, 1,
+                                       producer_hydctrl, producer_thmctrl_sp2, producer_hydchar), # producer
+                    DHG.Massflow(3, 4,
+                                 consumer_hydctrl, consumer_thmctrl_sp2, consumer_hydchar), # consumer
+                    DHG.Pipe(4, 2,
+                             pipe_innerdiameter, pipe_outerdiameter, pipe_length,
+                             wall_roughness, wall_conductivity), # cold pipe
+                   )
 # --- end of parameters --- #
 
-
-if size(syms_to_perturb) != size(perturbations_relative)
-    error("Sizes of syms_to_perturb, perturbations_relative must be the same")
-end
 
 expected_velocity = massflow / (density * 0.25 * pi * pipe_innerdiameter^2)
 
@@ -159,19 +180,20 @@ for (name, scheme) in convection_schemes
         discretisation = DHG.Discretisation.FVM(dx=dx, convection=scheme)
         println("\nConvection scheme: $name, dx = $dx")
 
+        ## Steady-state solution -- set-point 1
         ## Set up problem
-        nd_fn, g = DHG.assemble(node_structs, edge_structs, transport_models, discretisation, fluid_T)
+        nd_fn_sp1, g = DHG.assemble(node_structs, edge_structs_sp1, transport_models, discretisation, fluid_T)
             # nd_fn = nd.network_dynamics(collect(node_structs), collect(edge_structs), g)
 
         ## Calculate indices of nodal temperatures: constant for a given (scheme, dx)
-        nodeT_idxs = [DHG.PostProcessing.node_T_idxs(nd_fn.syms, node_idx)[1] # unpack 1-element vector
+        nodeT_idxs = [DHG.PostProcessing.node_T_idxs(nd_fn_sp1.syms, node_idx)[1] # unpack 1-element vector
                       for node_idx in 1:length(node_structs)
                      ]
 
         ## Initialise state vector: massflow states must be nonzero, required for node temperature calculation
         #   number of massflow and pressure states are constant; == n_nodes
         #   number of temperature states depends on dx
-        initial_guess = DHG.Miscellaneous.initialise(nd_fn,
+        u0_sp1 = DHG.Miscellaneous.initialise(nd_fn_sp1,
                                                      (_) -> init_massflows, # massflows to init_massflow
                                                      p_ref,                 # pressures to p_ref
                                                      T_ambient              # temperatures to T_ambient
@@ -179,30 +201,25 @@ for (name, scheme) in convection_schemes
 
         ## Solve for steady-state
         print("Starting steady-state solution")
-        sol_steady = DHG.Miscellaneous.solve_steadystate(nd_fn, initial_guess, params, solver_steady())
+        sol_steady = DHG.Miscellaneous.solve_steadystate(nd_fn_sp1, u0_sp1, params, solver_steady())
         println(" --- done")
 
         ## Save node temperatures at steady state
         state_steady = [sol_steady[idx] for idx in nodeT_idxs]
 
-        ## Perturb steady-state solution
-        idxs_to_perturb = [findfirst(==(sym), nd_fn.syms) for sym in syms_to_perturb]
-        u0_dynamic = Vector{Float64}(sol_steady.u)
-
-        for (idx, rel_ptbn) in zip(idxs_to_perturb, perturbations_relative)
-            u0_dynamic[idx] *= (1.0 + rel_ptbn) # Apply perturbation
-        end
-
         ## Dynamic solution
+        nd_fn_sp2, g = DHG.assemble(node_structs, edge_structs_sp2, transport_models, discretisation, fluid_T)
+        u0_sp2 = sol_steady.u
+
         print("Starting dynamic solution")
         if max_CFL !== nothing
             max_dt = max_CFL * dx / expected_velocity
             print(", max dt = $max_dt")
-            sol_dynamic = DHG.Miscellaneous.solve_dynamic(nd_fn, u0_dynamic, params, solver_dynamic(),
+            sol_dynamic = DHG.Miscellaneous.solve_dynamic(nd_fn_sp2, u0_sp2, params, solver_dynamic(),
                                                           time_interval, saveat=saveinterval,
                                                           dtmax=max_dt)
         else # no limit on dt
-            sol_dynamic = DHG.Miscellaneous.solve_dynamic(nd_fn, u0_dynamic, params, solver_dynamic(),
+            sol_dynamic = DHG.Miscellaneous.solve_dynamic(nd_fn_sp2, u0_sp2, params, solver_dynamic(),
                                                           time_interval, saveat=saveinterval)
         end
         println(" --- done")
