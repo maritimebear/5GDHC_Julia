@@ -51,4 +51,28 @@ function linear(phi::AbstractVector, phi_W, phi_E, u)
 end
 
 
+function linear_upwind(phi::AbstractVector, phi_W, phi_E, u)
+    # Linear upwind / second-order upwind scheme
+    # Calculates closed surface integral (u*phi) . dS
+    # Expects phi::Vector, where each element contains the value of phi in a finite-volume cell
+    # Returns vector of results for each cell
+    result = similar(phi)
+    if u > 0
+        result[1] = 1.5 * (phi[1] - phi_W)
+        result[2] = (1.5 * phi[2]) - (2.0 * phi[1]) + (0.5 * phi_W)
+        for i in 3:length(phi)
+            result[i] = (1.5 * phi[i]) - (2.0 * phi[i-1]) + (0.5 * phi[i-2])
+        end
+
+    elseif u < 0
+        result[end] = 1.5 * (phi_E - phi[end])
+        result[end-1] = (2.0 * phi[end]) - (1.5 * phi[end-1]) - (0.5 * phi_E)
+        for i in 1:(length(phi) - 2)
+            result[i] = (2.0 * phi[i+1]) - (1.5 * phi[i]) - (0.5 * phi[i+2])
+        end
+    end
+    return u .* result
+end
+
+
 end # module
