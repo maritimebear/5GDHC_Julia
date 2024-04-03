@@ -27,6 +27,7 @@ pipe_length = 100.0 # [m], value from Hirsch and Nicolai
 
 dxs = [1.0 / 2^r for r in 0:2]
 schemes = [Discretisation.FVM(dx=dx, convection=DHG.Discretisation.upwind) for dx in dxs]
+scheme_name = "Upwind"
 max_CFL = 1.0 # set to nothing to disable constraint
 
 timespan = (0.0, 20 * 60.0) # [s]
@@ -151,11 +152,16 @@ sols = [test_discretisation(scheme, dx, max_dt)
 
 for (i, sol) in enumerate(sols)
     times = sol.times
-    T_dst = sol.T_dst
-    plt.plot!(times, T_dst, label="dx: $(dxs[i])")
+    if massflow >= 0
+        T_dst = sol.T_dst
+        plt.plot!(times, T_dst, label="T_dst, dx: $(dxs[i])")
+    else
+        T_src = sol.T_src
+        plt.plot!(times, T_src, label="T_src, dx: $(dxs[i])")
+    end
 end
 
 plt.vline!([expected_time], label="", line=(:dot, "black", 2))
 plt.xlabel!("Time (s)")
 plt.ylabel!("Temperature (K)")
-plt.title!("Comparison of mesh sizings: Upwind discretisation")
+plt.title!("Comparison of mesh sizings: $scheme_name discretisation, massflow: $massflow", titlefontsize=8)
