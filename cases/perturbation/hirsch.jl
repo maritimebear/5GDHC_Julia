@@ -282,16 +282,36 @@ end
 
 
 times = time_interval[1]:saveinterval:time_interval[2]
-ps = [plt.plot(times, [states_dynamic["Upwind"][dx_idx][node_idx, :] for dx_idx in 1:length(dxs)],
+plots_node_Ts = [plt.plot(times, [states_dynamic["Upwind"][dx_idx][node_idx, :] for dx_idx in 1:length(dxs)],
                # label="dx: $(dxs[dx_idx])",
                legendposition=:inline,
                legendfontsize=3,
               )
       for node_idx in 1:length(node_structs)
      ]
-pp = plt.plot(ps...,
+fig_node_Ts = plt.plot(plots_node_Ts...,
               layout=4,
-              title=reshape(["Node $i" for i in 1:length(ps)], (1, length(ps))),
+              title=reshape(["Node $i" for i in 1:length(plots_node_Ts)], (1, length(plots_node_Ts))),
               titlefontsize=8,
              )
-display(pp)
+
+# plots_maxerrors = [plt.plot(1:n_refinement_levels,
+#                             [maxerrors_dynamic["Upwind"][refinement_idx][node_idx] for refinement_idx in 1:n_refinement_levels],
+#                            ) for node_idx in 1:length(node_structs)
+#                   ]
+
+plots_maxerrors = [plt.plot([errors[refinement_idx][node_idx] for refinement_idx in 1:n_refinement_levels],
+                            label=scheme,
+                            legendposition=:inline,
+                            legendfontsize=4,
+                           ) for node_idx in 1:length(node_structs)
+                   for (scheme, errors) in maxerrors_dynamic
+                  ]
+
+fig_maxerrors = plt.plot(plots_maxerrors...,
+                         layout=4,
+                         title=reshape(["Node $i" for i in 1:length(plots_maxerrors)], (1, length(plots_maxerrors))),
+                         titlefontsize=8,
+                        )
+
+display(fig_node_Ts)
