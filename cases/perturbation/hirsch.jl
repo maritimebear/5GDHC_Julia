@@ -19,6 +19,7 @@
 import DifferentialEquations as de
 import SciMLNLSolve
 import Random
+import LinearAlgebra as la
 
 import Plots as plt
 
@@ -245,6 +246,23 @@ statediffs_steady = Dict(scheme => [dx_vec[i+1] .- dx_vec[i] for i in 1:(length(
 statediffs_dynamic = Dict(scheme => [dx_mat[i+1] .- dx_mat[i] for i in 1:(length(dx_mat)-1)]
                          for (scheme, dx_mat) in states_dynamic
                         )
+
+maxerrors_dynamic = Dict(scheme_name =>
+                         [[la.norm(statediffs_dynamic[scheme_name][refinement_idx][node_idx, :],
+                                   Inf
+                                  ) for node_idx in 1:length(node_structs)
+                          ] for refinement_idx in 1:n_refinement_levels
+                         ] for (scheme_name, _) in convection_schemes
+                        )
+
+## Order of convergence calculation from grid convergence analysis
+order_convergence = Dict{String, Vector{Float64}}()
+for (scheme, errors) in maxerrors_dynamic
+    for i in 1:3:(3 * div(length(errors), 3, RoundDown)) # Order of convergence works on sets of 3 dxs
+        order_convergence[scheme] = log.((errors[i+1] .- errors[i]) ./ (errors[i+2] .- errors[i+1])) / log(refinement_ratio)
+    end
+end
+
 
 # node_Es = [abs.(statediffs_dynamic["Upwind"][i][3, :]) for i in 1:n_refinement_levels]
 # times = time_interval[1]:saveinterval:time_interval[2]
