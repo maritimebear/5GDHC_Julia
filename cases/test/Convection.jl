@@ -164,4 +164,4 @@ end
 plt.vline!([expected_time], label="", line=(:dot, "black", 2))
 plt.xlabel!("Time (s)")
 plt.ylabel!("Temperature (K)")
-plt.title!("Comparison of mesh sizings: $scheme_name discretisation, massflow: $massflow", titlefontsize=8)
+plt.title!("Comparison of mesh sizings: $scheme_name interpolation, massflow: $massflow", titlefontsize=8)
