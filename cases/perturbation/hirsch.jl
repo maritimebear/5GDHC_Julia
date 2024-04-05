@@ -338,4 +338,17 @@ fig_maxerrors = plt.plot(plots_maxerrors...,
                          titlefontsize=8,
                         )
 
-display(fig_node_Ts)
+plots_convergence = [plt.plot(times, conv[node_idx, :],
+                            label=scheme,
+                            legendposition=:inline,
+                            legendfontsize=4,
+                           ) for node_idx in 1:length(node_structs)
+                   for (scheme, conv) in convergence
+                  ]
+
+fig_convergence = plt.plot(plots_convergence...,
+                         layout=4,
+                         title=reshape(["Node $i" for i in 1:length(plots_convergence)], (1, length(plots_convergence))),
+                         titlefontsize=8,
+                        )
+display(fig_convergence)
