@@ -39,7 +39,7 @@ solver_dynamic = de.Rodas5
 ## Spatial discretisation
 initial_dx = 10.0 # [m]
 refinement_ratio = 2
-n_refinement_levels = 6
+n_refinement_levels = 2
 
 ## Temporal discretisation
 time_interval = (0.0, 1 * 60 * 60.0) # [s]
@@ -70,7 +70,9 @@ massflow = 0.3 # [kg/s], Hirsch and Nicolai
 consumer_power_sp1 = -2.7e3 # [W] Assuming temperature change across consumer = -4 K [Hirsch]
 consumer_power_sp2 = -5e3 # [W] New set-point
 sp_change_time = 10 * 60.0 # [s]
-ramp_duration = 1 * 60.0 # [s] Duration of (linear) transition between set-points
+ramp_duration = 10 * 60.0 # [s] Duration of (linear) transition between set-points
+
+# !! The error in the time-integration gets weirder as the ramp gets steeper !! #
 
 
 ## Pump model for producer
@@ -218,10 +220,15 @@ for (name, scheme) in convection_schemes
             print(", max dt = $max_dt")
             sol_dynamic = DHG.Miscellaneous.solve_dynamic(nd_fn_sp2, u0_sp2, params, solver_dynamic(),
                                                           time_interval, saveat=saveinterval,
-                                                          dtmax=max_dt)
+                                                          dtmax=max_dt,
+                                                          dt=1.0,
+                                                          tstops=[sp_change_time, sp_change_time + ramp_duration]
+                                                         )
         else # no limit on dt
             sol_dynamic = DHG.Miscellaneous.solve_dynamic(nd_fn_sp2, u0_sp2, params, solver_dynamic(),
-                                                          time_interval, saveat=saveinterval)
+                                                          time_interval, saveat=saveinterval,
+                                                          tstops=[sp_change_time, sp_change_time + ramp_duration]
+                                                         )
         end
         println(" --- done")
 
@@ -246,6 +253,23 @@ statediffs_steady = Dict(scheme => [dx_vec[i+1] .- dx_vec[i] for i in 1:(length(
 statediffs_dynamic = Dict(scheme => [dx_mat[i+1] .- dx_mat[i] for i in 1:(length(dx_mat)-1)]
                          for (scheme, dx_mat) in states_dynamic
                         )
+
+errors_dynamic = Dict(scheme => [abs.(mat) for mat in dx_mats] for (scheme, dx_mats) in statediffs_dynamic)
+
+convergence = Dict{String, Matrix{Float64}}()
+for (scheme, errors) in statediffs_dynamic # statediffs_dynamic for no abs()
+    for i in 1:2:(2 * div(length(errors), 2, RoundDown))
+        numerator = errors[i]
+        denominator = errors[i+1]
+        p = log.(numerator ./ denominator) / log(refinement_ratio)
+        convergence[scheme] = p
+    end
+end
+# convergence = Dict(scheme => (errors_dynamic[scheme][i+1] .- errors_dynamic[scheme][i]) ./ (errors_dynamic[scheme][i+2] .- errors_dynamic[scheme][i+1]))
+
+
+
+
 
 maxerrors_dynamic = Dict(scheme_name =>
                          [[la.norm(statediffs_dynamic[scheme_name][refinement_idx][node_idx, :],
