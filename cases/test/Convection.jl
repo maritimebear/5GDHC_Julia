@@ -19,14 +19,15 @@ import .DHG.Discretisation
 
 massflow = 0.3 # [kg/s], value from Hirsch and Nicolai
 density = 1e3 # [kg/m^3]
-source_temperature = 20 + 273.15 # [K], value from Hirsch and Nicolai
+fixed_temperature = 20 + 273.15 # [K], value from Hirsch and Nicolai
 initial_temperature = 10 + 273.15
 
 pipe_diameter = 40.8e-3 # [m], value from Hirsch and Nicolai
 pipe_length = 100.0 # [m], value from Hirsch and Nicolai
 
-dxs = [1.0 / 2^r for r in 0:3]
+dxs = [1.0 / 2^r for r in 0:2]
 schemes = [Discretisation.FVM(dx=dx, convection=DHG.Discretisation.upwind) for dx in dxs]
+scheme_name = "Upwind"
 max_CFL = 1.0 # set to nothing to disable constraint
 
 timespan = (0.0, 20 * 60.0) # [s]
@@ -38,12 +39,20 @@ saveinterval = 1.0 # [s]
 # Dynamical functions for NetworkDynamics.jl
 
 function src_node(dv, v, edges_in, edges_out, p, _)
-    dv[1] = v[1] - p.src_temp
+    if p.massflow >= 0
+        dv[1] = v[1] - p.fixed_temp
+    else
+        dv[1] = v[1] - edges_out[1][2]
+    end
     return nothing
 end
 
-function dst_node(dv, v, edges_in, _, _, _)
-    dv[1] = v[1] - edges_in[1][end]
+function dst_node(dv, v, edges_in, _, p, _)
+    if p.massflow >= 0
+        dv[1] = v[1] - edges_in[1][end]
+    else
+        dv[1] = v[1] - p.fixed_temp
+    end
     return nothing
 end
 
@@ -69,7 +78,7 @@ function test_discretisation(discretisation_scheme::Discretisation.Discretisatio
                             )                            
 
     # Set up problem and solve
-    parameters = (src_temp = source_temperature,
+    parameters = (fixed_temp = fixed_temperature,
                   grid_sizing = grid_sizing,
                   discretisation = discretisation_scheme,
                   massflow = massflow,
@@ -119,6 +128,7 @@ function test_discretisation(discretisation_scheme::Discretisation.Discretisatio
     println("Done: dx = $grid_sizing")
 
     return (times = sol.t,
+            T_src = [u[nd.idx_containing(nd_fn, "T_src")][1] for u in sol.u],
             T_dst = [u[nd.idx_containing(nd_fn, "T_dst")][1] for u in sol.u]
            )
 end
@@ -127,10 +137,10 @@ end
 # Test (scheme, grid_sizing)
 
 expected_velocity = massflow / (density * 0.25 * pi * pipe_diameter^2)
-expected_time = pipe_length / expected_velocity # Time for temperature of src node to reach dst node
+expected_time = pipe_length / abs(expected_velocity) # Time for temperature of src node to reach dst node
 
 if max_CFL !== nothing
-    max_dts = [max_CFL * dx / expected_velocity for dx in dxs] # CFL = u * dt / dx
+    max_dts = abs.([max_CFL * dx / expected_velocity for dx in dxs]) # CFL = u * dt / dx
 else
     max_dts = [-1.0 for _ in dxs]
 end
@@ -142,11 +152,16 @@ sols = [test_discretisation(scheme, dx, max_dt)
 
 for (i, sol) in enumerate(sols)
     times = sol.times
-    T_dst = sol.T_dst
-    plt.plot!(times, T_dst, label="dx: $(dxs[i])")
+    if massflow >= 0
+        T_dst = sol.T_dst
+        plt.plot!(times, T_dst, label="T_dst, dx: $(dxs[i])")
+    else
+        T_src = sol.T_src
+        plt.plot!(times, T_src, label="T_src, dx: $(dxs[i])")
+    end
 end
 
 plt.vline!([expected_time], label="", line=(:dot, "black", 2))
 plt.xlabel!("Time (s)")
 plt.ylabel!("Temperature (K)")
-plt.title!("Comparison of mesh sizings: Upwind discretisation")
+plt.title!("Comparison of mesh sizings: $scheme_name interpolation, massflow: $massflow", titlefontsize=8)

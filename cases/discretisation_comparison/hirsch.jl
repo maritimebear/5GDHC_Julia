@@ -75,6 +75,8 @@ wall_roughness = 8.116e-6 # [m], Rocha
 dxs = [initial_dx / (refinement_ratio ^ r) for r in 0:n_refinement_levels]
 
 convection_schemes = Dict("Upwind" => DHG.Discretisation.upwind,
+                          "Linear Upwind" => DHG.Discretisation.linear_upwind,
+                          "van Leer" => DHG.Discretisation.TVD_vanLeer,
                          )
 
 
