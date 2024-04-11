@@ -10,22 +10,25 @@ import .utils
 
 
 ## Time integration parameters
-time_interval = (0.0, 24 * 60.0 * 60.0) # [s]
+time_interval = (0.0, 1 * 60.0 * 60.0) # [s]
 save_interval = 1 * 60.0 # [s]
 save_times = time_interval[1]:save_interval:time_interval[2]
-max_CFL = nothing
+max_CFL = 1.0
 
-solver_kwargs = Dict(:saveat => save_times)
+solver_kwargs = Dict{Symbol, Any}()
+solver_kwargs[:saveat] = collect(save_times)
 
 ## Discretisation
-initial_dx = 50.0 # [m]
+initial_dx = 20.0 # [m]
 refinement_ratio = 2
 n_refinement_levels = 5
 dxs = [initial_dx / (refinement_ratio ^ r) for r in 0:n_refinement_levels]
 
 convection_schemes = Dict("Upwind" => DHG.Discretisation.upwind,
                           "Linear Upwind" => DHG.Discretisation.linear_upwind,
-                          "van Leer" => DHG.Discretisation.TVD_vanLeer,
+                          "van Leer" => DHG.Discretisation.vanLeer,
+                          "van Albada" => DHG.Discretisation.vanAlbada,
+                          "MINMOD" => DHG.Discretisation.minmod,
                          )
 
 
