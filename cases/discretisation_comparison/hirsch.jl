@@ -30,7 +30,7 @@ import .utils
 
 Random.seed!(93851203598)
 solver = SciMLNLSolve.NLSolveJL
-initial_dx = 10.0 # [m]
+initial_dx = 20.0 # [m]
 refinement_ratio = 2
 n_refinement_levels = 2
 
@@ -76,7 +76,9 @@ dxs = [initial_dx / (refinement_ratio ^ r) for r in 0:n_refinement_levels]
 
 convection_schemes = Dict("Upwind" => DHG.Discretisation.upwind,
                           "Linear Upwind" => DHG.Discretisation.linear_upwind,
-                          "van Leer" => DHG.Discretisation.TVD_vanLeer,
+                          "van Leer" => DHG.Discretisation.vanLeer,
+                          "van Albada" => DHG.Discretisation.vanAlbada,
+                          "MINMOD" => DHG.Discretisation.minmod,
                          )
 
 
