@@ -132,9 +132,13 @@ end
 
 
 ## TVD schemes as closures
-vanLeer = create_TVD_scheme((r) ->
-                            ((r .+ abs.(r)) ./ (1.0 .+ abs.(r))) # van Leer flux limiter
-                           )
+
+vanLeer = create_TVD_scheme((r) -> ((r .+ abs.(r)) ./ (1.0 .+ abs.(r))))
+
+vanAlbada = create_TVD_scheme((r) -> ((r.^2 .+ r) ./ (r.^2 .+ 1.0)))
+
+minmod = create_TVD_scheme((r) -> (clamp.(r, 0.0, 1.0)))
+
 lu_TVD = create_TVD_scheme((_) -> 1.0) # TVD version of linear upwind, for testing purposes
 
 
