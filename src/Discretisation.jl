@@ -1,7 +1,10 @@
 module Discretisation
 
 export DiscretisationScheme, FVM
-export upwind
+
+export upwind, linear, linear_upwind
+export create_TVD_scheme
+export vanLeer
 
 
 abstract type DiscretisationScheme
@@ -105,6 +108,22 @@ function grad_ratio(phi::AbstractVector, phi_W, phi_E, u)
 end
 
 
+function create_TVD_scheme(limiter_function)
+    # Returns closure that implements a TVD convection scheme with the specified flux limiter function
+    function convection_scheme(phi::AbstractVector, phi_W, phi_E, u)
+        # Closure, flux limiter captured from outer function
+        let limiter_fn = limiter_function
+            grad_ratios = grad_ratio(phi, phi_W, phi_E, u)
+            phi_upstream = u >= 0 ? [phi_W; phi[1:end]] : [phi[1:end]; phi_E]
+            phi_downstream = u >= 0 ? [phi[1:end]; phi_E] : [phi_W; phi[1:end]]
+            face_phis = phi_upstream .+ (0.5 .* limiter_fn.(grad_ratios) .* (phi_downstream .- phi_upstream))
+            return u .* (face_phis[2:end] .- face_phis[1:end-1])
+        end # let block
+    end # Closure
+    return convection_scheme
+end
+
+
 function fluxlimiter_vanLeer(grad_ratio)
     # -> Vector{Float64}
     # van Leer flux limiter, calculates limit for each face in grid
@@ -112,32 +131,11 @@ function fluxlimiter_vanLeer(grad_ratio)
 end
 
 
-function TVD_vanLeer(phi::AbstractVector, phi_W, phi_E, u)
-    # 2-nd order accurate TVD scheme using van Leer flux limiter
-    # Calculates closed surface integral (u*phi) . dS
-    # Expects phi::Vector, where each element contains the value of phi in a finite-volume cell
-    # Returns vector of results for each cell
-    grad_ratios = grad_ratio(phi, phi_W, phi_E, u)
-    phi_upstream = u >= 0 ? [phi_W; phi[1:end]] : [phi[1:end]; phi_E]
-    phi_downstream = u >= 0 ? [phi[1:end]; phi_E] : [phi_W; phi[1:end]]
-    # face_phis = phi_upstream .+ (0.5 .* fluxlimiter_vanLeer.(grad_ratios) .* (phi_downstream .- phi_upstream))
-    v1 = phi_upstream
-    v2 = 0.5 .* fluxlimiter_vanLeer.(grad_ratios)
-    v3 = phi_downstream .- phi_upstream
-    face_phis = v1 .+ (v2 .* v3)
-    return u .* (face_phis[2:end] .- face_phis[1:end-1])
-end
-
-
-function TVD_LU(phi::AbstractVector, phi_W, phi_E, u)
-    # TVD version of linear upwind, for testing purposes
-    grad_ratios = grad_ratio(phi, phi_W, phi_E, u)
-    phi_upstream = u >= 0 ? [phi_W; phi[1:end]] : [phi[1:end]; phi_E]
-    phi_downstream = u >= 0 ? [phi[1:end]; phi_E] : [phi_W; phi[1:end]]
-    face_phis = phi_upstream .+ (0.5 .* grad_ratios .* (phi_downstream .- phi_upstream))
-    # @show face_phis
-    return u .* (face_phis[2:end] .- face_phis[1:end-1])
-end
+## TVD schemes as closures
+vanLeer = create_TVD_scheme((r) ->
+                            ((r .+ abs.(r)) ./ (1.0 .+ abs.(r))) # van Leer flux limiter
+                           )
+lu_TVD = create_TVD_scheme((_) -> 1.0) # TVD version of linear upwind, for testing purposes
 
 
 end # module
