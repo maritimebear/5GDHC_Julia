@@ -14,7 +14,7 @@
 # Dang et al, "Fifth generation district heating and cooling: A comprehensive survey", 2024
 
 
-# import SciMLNLSolve
+import DifferentialEquations as de
 import Random
 
 include("../../src/DHG.jl")

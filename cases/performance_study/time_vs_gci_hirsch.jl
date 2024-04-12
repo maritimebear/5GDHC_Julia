@@ -1,8 +1,5 @@
 # Script to benchmark performance: computation time vs GCI for the Hirsch test case
 
-import DifferentialEquations as de
-import BenchmarkTools as bt
-
 include("./setup_hirsch.jl") # provides input parameters (except discretisation) and imports DHG
 
 include("./utils_gci.jl")
