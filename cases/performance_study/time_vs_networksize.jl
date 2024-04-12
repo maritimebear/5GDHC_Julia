@@ -52,6 +52,8 @@ producer_thmctrl() = (t) -> (-consumer_heatrate * rand(dbn.Uniform(0.0, 2.0)))
 
 expected_velocity = massflow / (density * 0.25 * pi * pipe_innerdiameter^2)
 
+params = (density=density, T_ambient=T_ambient)
+
 for n_prosumer in n_prosumers
     println("Number of prosumers: $n_prosumer")
 

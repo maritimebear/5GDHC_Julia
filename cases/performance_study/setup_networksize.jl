@@ -73,7 +73,6 @@ wall_roughness = 8.116e-6 # [m], Rocha
 # --- end of parameters --- #
 
 
-params = (density=density, T_ambient=T_ambient)
 
 
 result_tuple_T = NamedTuple{(:syms, :sol),
