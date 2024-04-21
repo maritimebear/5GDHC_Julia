@@ -11,11 +11,20 @@ import Graphs as gr
 import LinearAlgebra as la
 import Plots as plt
 
+import HDF5
+
 include("../../src/DHG.jl")
 import .DHG.Discretisation
 
 
 # --- Parameters ---
+
+write_hdf5 = true # Whether to write results to hdf5
+plot_results = false # Whether to plot results
+
+export_filename = "convection.h5"
+writemode = "cw" # https://juliaio.github.io/HDF5.jl/stable/#Creating-a-group-or-dataset
+
 
 massflow = 0.3 # [kg/s], value from Hirsch and Nicolai
 density = 1e3 # [kg/m^3]
@@ -161,7 +170,26 @@ for (i, sol) in enumerate(sols)
     end
 end
 
-plt.vline!([expected_time], label="", line=(:dot, "black", 2))
-plt.xlabel!("Time (s)")
-plt.ylabel!("Temperature (K)")
-plt.title!("Comparison of mesh sizings: $scheme_name interpolation, massflow: $massflow", titlefontsize=8)
+if plot_results
+    plt.vline!([expected_time], label="", line=(:dot, "black", 2))
+    plt.xlabel!("Time (s)")
+    plt.ylabel!("Temperature (K)")
+    plt.title!("Comparison of mesh sizings: $scheme_name interpolation, massflow: $massflow", titlefontsize=8)
+end
+
+if write_hdf5
+    print("Exporting results ... ")
+    HDF5.h5open(export_filename, writemode) do fid
+        HDF5.create_group(fid, scheme_name)
+        for (i, _) in enumerate(schemes)
+            g = HDF5.create_group(fid[scheme_name], "discn$i")
+            data = Dict("dx" => dxs[i], "times" => sols[i].times,
+                        "T_src" => sols[i].T_src, "T_dst" => sols[i].T_dst
+                       )
+            for (key, value) in data
+                g[key] = value
+            end
+        end
+    end
+    println("done")
+end
