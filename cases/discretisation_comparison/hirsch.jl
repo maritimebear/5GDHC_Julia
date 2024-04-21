@@ -25,8 +25,6 @@ import .DHG
 include("./utils_discncomparison.jl")
 import .utils
 
-# TODO: actual values for pipe geometry, pump model, thermal controls
-
 # --- Parameters ---- #
 
 Random.seed!(93851203598)
