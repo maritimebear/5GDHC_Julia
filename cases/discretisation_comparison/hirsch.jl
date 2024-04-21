@@ -16,6 +16,7 @@
 import SciMLNLSolve
 import Random
 
+import HDF5
 import GLMakie as mk
 
 include("../../src/DHG.jl")
@@ -29,10 +30,17 @@ import .utils
 # --- Parameters ---- #
 
 Random.seed!(93851203598)
+
+export_results = true # Export results to HDF5
+export_filename = "gridconvergence_hirsch.h5"
+writemode = "cw" # https://juliaio.github.io/HDF5.jl/stable/#Creating-a-group-or-dataset
+
+plot_results = false
+
 solver = SciMLNLSolve.NLSolveJL
 initial_dx = 20.0 # [m]
 refinement_ratio = 2
-n_refinement_levels = 2
+n_refinement_levels = 5
 
 
 ## Fixed/reference values
@@ -180,6 +188,11 @@ node_errors = [Dict(scheme => [utils.relative_error(Ts_at_dx[i+1], Ts_at_dx[i]) 
                 for Ts_dict in node_Ts
               ] # Relative error at each node across discn. schemes and (coarser dx, finer dx)
 
+results_postprocessed = [Dict(scheme_name => (order_convergence=Vector{Float64}(), gci=Vector{Float64}())
+                              for (scheme_name, _) in convection_schemes)
+                         for _ in enumerate(node_structs)
+                        ]
+
 println("\n\nGrid convergence report")
 println("-------------------------\n")
 println("Grid base size: $initial_dx\n\n")
@@ -201,38 +214,74 @@ for (node_idx, _) in enumerate(node_Ts)
             @show GCIs
             println("\nAsymptotic convergence check: \
                     (GCI ratio / r^p) = $(GCIs[1] / (GCIs[2] * refinement_ratio^p))\n")
+            # Save post-processed results
+            push!(results_postprocessed[node_idx][scheme].order_convergence, p)
+            push!(results_postprocessed[node_idx][scheme].gci, GCIs...)
         end
         println("\n")
     end
 end
 
+## Export results
+if export_results
+    print("Exporting results ... ")
+    HDF5.h5open(export_filename, writemode) do fid
+        for (scheme_name, _) in convection_schemes
+            g = HDF5.create_group(fid, scheme_name)
+            g["dxs"] = dxs
+            g["nodes_temperatures"] = [node_Ts[node_idx][scheme_name][dx_idx]
+                                       for (node_idx, _) in enumerate(node_structs),
+                                       (dx_idx, _) in enumerate(dxs)
+                                      ] # columns => nodes, rows => dxs, loop orders reversed: HDF5 expects row-major
+
+            g["nodes_errors"] = [node_errors[node_idx][scheme_name][ref_idx]
+                                 for (node_idx, _) in enumerate(node_structs),
+                                 ref_idx in 1:n_refinement_levels
+                                ] # columns => nodes, rows => refinement steps
+
+            g["nodes_orderconvs"] = [results_postprocessed[node_idx][scheme_name].order_convergence[p_idx]
+                                     for (node_idx, _) in enumerate(node_structs),
+                                     p_idx in 1:div(length(dxs), 3, RoundDown)
+                                    ] # columns => nodes, rows => sets of 3 grid sizes
+
+            g["nodes_gcis"] = [results_postprocessed[node_idx][scheme_name].gci[gci_idx]
+                               for (node_idx, _) in enumerate(node_structs),
+                               gci_idx in 1:(div(length(dxs), 3, RoundDown) + 2)
+                              ] # columns => nodes, rows => sets of 3 grid sizes
+        end
+    end
+    println("done")
+end
+
 ## Plots
+if plot_results
+    fig_nodeTs = mk.Figure()
+    axes_nodeTs = [mk.Axis(fig_nodeTs[row, 1],
+                           xticks = collect(0:n_refinement_levels),
+                           xtickformat = xs -> ["1/$(2^Int(x))" for x in xs],
+                           yticks=mk.LinearTicks(3),
+                           # yminorticks=mk.IntervalsBetween(5), yminorticksvisible=true, yminorgridvisible=true,
+                           # yticks = mk.MultiplesTicks(5, 1e-3, "a"),
+                          ) for row in 1:4
+                  ]
 
-fig_nodeTs = mk.Figure()
-axes_nodeTs = [mk.Axis(fig_nodeTs[row, 1],
-                       xticks = collect(0:n_refinement_levels),
-                       xtickformat = xs -> ["1/$(2^Int(x))" for x in xs],
-                       yticks=mk.LinearTicks(3),
-                       # yminorticks=mk.IntervalsBetween(5), yminorticksvisible=true, yminorgridvisible=true,
-                       # yticks = mk.MultiplesTicks(5, 1e-3, "a"),
-                      ) for row in 1:4
-              ]
+    lines_nodeTs = Dict(scheme_name => [mk.scatterlines!(axes_nodeTs[i],
+                                                         0:n_refinement_levels, # x-axis
+                                                         node_Ts[i][scheme_name], # y-axis
+                                                         # node_errors[i][scheme_name],
+                                                         linestyle=:dash, marker=:circle,
+                                                        )
+                                        for (i, _) in enumerate(node_structs)
+                                       ]
+                        for (scheme_name, _) in convection_schemes
+                       )
 
-lines_nodeTs = Dict(scheme_name => [mk.scatterlines!(axes_nodeTs[i],
-                                                     0:n_refinement_levels, # x-axis
-                                                     node_Ts[i][scheme_name], # y-axis
-                                                     # node_errors[i][scheme_name],
-                                                     linestyle=:dash, marker=:circle,
-                                                    )
-                                    for (i, _) in enumerate(node_structs)
-                                   ]
-                    for (scheme_name, _) in convection_schemes
-                   )
-
-for (i, ax) in enumerate(axes_nodeTs)
-    # Inset titles for axes
-    mk.text!(ax,
-             1, 1, text="Node $i", font=:bold, #fontsize=11,
-             align=(:right, :top), space=:relative, offset=(-8, -4), justification=:right,
-            )
+    for (i, ax) in enumerate(axes_nodeTs)
+        # Inset titles for axes
+        mk.text!(ax,
+                 1, 1, text="Node $i", font=:bold, #fontsize=11,
+                 align=(:right, :top), space=:relative, offset=(-8, -4), justification=:right,
+                )
+    end
+    display(fig_nodeTs)
 end
