@@ -171,10 +171,11 @@ for (i, sol) in enumerate(sols)
 end
 
 if plot_results
-    plt.vline!([expected_time], label="", line=(:dot, "black", 2))
+    p = plt.vline!([expected_time], label="", line=(:dot, "black", 2))
     plt.xlabel!("Time (s)")
     plt.ylabel!("Temperature (K)")
     plt.title!("Comparison of mesh sizings: $scheme_name interpolation, massflow: $massflow", titlefontsize=8)
+    display(p)
 end
 
 if write_hdf5
