@@ -21,6 +21,7 @@ import SciMLNLSolve
 import Random
 import LinearAlgebra as la
 
+import HDF5
 import Plots as plt
 
 include("../../src/DHG.jl")
@@ -33,13 +34,18 @@ import .Utils_Perturb as utils
 # --- Parameters ---- #
 
 Random.seed!(93851203598)
+
+export_results = true # Export results to HDF5
+export_filename = "perturbation_hirsch.h5"
+writemode = "cw" # https://juliaio.github.io/HDF5.jl/stable/#Creating-a-group-or-dataset
+
 solver_steady = SciMLNLSolve.NLSolveJL
 solver_dynamic = de.Rodas5
 
 ## Spatial discretisation
-initial_dx = 10.0 # [m]
+initial_dx = 20.0 # [m]
 refinement_ratio = 2
-n_refinement_levels = 2
+n_refinement_levels = 5
 
 ## Temporal discretisation
 time_interval = (0.0, 1 * 60 * 60.0) # [s]
@@ -69,8 +75,8 @@ massflow = 0.3 # [kg/s], Hirsch and Nicolai
 ## Set-point control
 consumer_power_sp1 = -2.7e3 # [W] Assuming temperature change across consumer = -4 K [Hirsch]
 consumer_power_sp2 = -5e3 # [W] New set-point
-sp_change_time = 10 * 60.0 # [s]
-ramp_duration = 10 * 60.0 # [s] Duration of (linear) transition between set-points
+sp_change_time = 15 * 60.0 # [s]
+ramp_duration = 1 * 60.0 # [s] Duration of (linear) transition between set-points
 
 # !! The error in the time-integration gets weirder as the ramp gets steeper !! #
 
@@ -94,6 +100,10 @@ wall_roughness = 8.116e-6 # [m], Rocha
 ## Interpolation schemes
 dxs = [initial_dx / (refinement_ratio ^ r) for r in 0:n_refinement_levels]
 convection_schemes = Dict("Upwind" => DHG.Discretisation.upwind,
+                          "Linear Upwind" => DHG.Discretisation.linear_upwind,
+                          "van Leer" => DHG.Discretisation.vanLeer,
+                          "van Albada" => DHG.Discretisation.vanAlbada,
+                          "MINMOD" => DHG.Discretisation.minmod,
                          )
 
 
@@ -256,19 +266,15 @@ statediffs_dynamic = Dict(scheme => [dx_mat[i+1] .- dx_mat[i] for i in 1:(length
 
 errors_dynamic = Dict(scheme => [abs.(mat) for mat in dx_mats] for (scheme, dx_mats) in statediffs_dynamic)
 
-convergence = Dict{String, Matrix{Float64}}()
-for (scheme, errors) in statediffs_dynamic # statediffs_dynamic for no abs()
-    for i in 1:2:(2 * div(length(errors), 2, RoundDown))
-        numerator = errors[i]
-        denominator = errors[i+1]
-        p = log.(numerator ./ denominator) / log(refinement_ratio)
-        convergence[scheme] = p
-    end
-end
-# convergence = Dict(scheme => (errors_dynamic[scheme][i+1] .- errors_dynamic[scheme][i]) ./ (errors_dynamic[scheme][i+2] .- errors_dynamic[scheme][i+1]))
-
-
-
+# convergence = Dict{String, Matrix{Float64}}()
+# for (scheme, errors) in statediffs_dynamic # statediffs_dynamic for no abs()
+#     for i in 1:2:(2 * div(length(errors), 2, RoundDown))
+#         numerator = errors[i]
+#         denominator = errors[i+1]
+#         p = log.(numerator ./ denominator) / log(refinement_ratio)
+#         convergence[scheme] = p
+#     end
+# end
 
 
 maxerrors_dynamic = Dict(scheme_name =>
@@ -279,33 +285,34 @@ maxerrors_dynamic = Dict(scheme_name =>
                          ] for (scheme_name, _) in convection_schemes
                         )
 
-## Order of convergence calculation from grid convergence analysis
-order_convergence = Dict{String, Vector{Float64}}()
-for (scheme, errors) in maxerrors_dynamic
-    for i in 1:3:(3 * div(length(errors), 3, RoundDown)) # Order of convergence works on sets of 3 dxs
-        order_convergence[scheme] = log.((errors[i+1] .- errors[i]) ./ (errors[i+2] .- errors[i+1])) / log(refinement_ratio)
-    end
-end
-
-
-# node_Es = [abs.(statediffs_dynamic["Upwind"][i][3, :]) for i in 1:n_refinement_levels]
-# times = time_interval[1]:saveinterval:time_interval[2]
-# p = plt.plot(times, node_Es[1])
-# for v in node_Es[2:end]
-#     p = plt.plot!(times, v)
+# ## Order of convergence calculation from grid convergence analysis
+# order_convergence = Dict{String, Vector{Float64}}()
+# for (scheme, errors) in maxerrors_dynamic
+#     for i in 1:3:(3 * div(length(errors), 3, RoundDown)) # Order of convergence works on sets of 3 dxs
+#         order_convergence[scheme] = log.((errors[i+1] .- errors[i]) ./ (errors[i+2] .- errors[i+1])) / log(refinement_ratio)
+#     end
 # end
-# display(p)
-
-# node_Ts = [states_dynamic["Upwind"][i][3, :] for i in 1:length(dxs)]
-# times = time_interval[1]:saveinterval:time_interval[2]
-# p = plt.plot(times, node_Ts[1])
-# for v in node_Ts[2:end]
-#     plt.plot!(times, v)
-# end
-# display(p)
 
 
 times = time_interval[1]:saveinterval:time_interval[2]
+
+if export_results
+    print("Exporting results ... ")
+    HDF5.h5open(export_filename, writemode) do fid
+    fid["times"] = collect(times)
+    fid["dxs"] = dxs
+        for (scheme_name, _) in convection_schemes
+            g = HDF5.create_group(fid, scheme_name)
+            for (dx_idx, dx) in enumerate(dxs)
+                dx_g = HDF5.create_group(g, "dx_$dx_idx")
+                dx_g["dx"] = dx
+                dx_g["nodes_temperatures"] = states_dynamic[scheme_name][dx_idx]
+            end
+        end
+    end
+    println("done")
+end
+
 plots_node_Ts = [plt.plot(times, [states_dynamic["Upwind"][dx_idx][node_idx, :] for dx_idx in 1:length(dxs)],
                # label="dx: $(dxs[dx_idx])",
                legendposition=:inline,
@@ -319,36 +326,31 @@ fig_node_Ts = plt.plot(plots_node_Ts...,
               titlefontsize=8,
              )
 
-# plots_maxerrors = [plt.plot(1:n_refinement_levels,
-#                             [maxerrors_dynamic["Upwind"][refinement_idx][node_idx] for refinement_idx in 1:n_refinement_levels],
+# plots_maxerrors = [plt.plot([errors[refinement_idx][node_idx] for refinement_idx in 1:n_refinement_levels],
+#                             label=scheme,
+#                             legendposition=:inline,
+#                             legendfontsize=4,
 #                            ) for node_idx in 1:length(node_structs)
+#                    for (scheme, errors) in maxerrors_dynamic
 #                   ]
 
-plots_maxerrors = [plt.plot([errors[refinement_idx][node_idx] for refinement_idx in 1:n_refinement_levels],
-                            label=scheme,
-                            legendposition=:inline,
-                            legendfontsize=4,
-                           ) for node_idx in 1:length(node_structs)
-                   for (scheme, errors) in maxerrors_dynamic
-                  ]
+# fig_maxerrors = plt.plot(plots_maxerrors...,
+#                          layout=4,
+#                          title=reshape(["Node $i" for i in 1:length(plots_maxerrors)], (1, length(plots_maxerrors))),
+#                          titlefontsize=8,
+#                         )
 
-fig_maxerrors = plt.plot(plots_maxerrors...,
-                         layout=4,
-                         title=reshape(["Node $i" for i in 1:length(plots_maxerrors)], (1, length(plots_maxerrors))),
-                         titlefontsize=8,
-                        )
+# plots_convergence = [plt.plot(times, conv[node_idx, :],
+#                             label=scheme,
+#                             legendposition=:inline,
+#                             legendfontsize=4,
+#                            ) for node_idx in 1:length(node_structs)
+#                    for (scheme, conv) in convergence
+#                   ]
 
-plots_convergence = [plt.plot(times, conv[node_idx, :],
-                            label=scheme,
-                            legendposition=:inline,
-                            legendfontsize=4,
-                           ) for node_idx in 1:length(node_structs)
-                   for (scheme, conv) in convergence
-                  ]
-
-fig_convergence = plt.plot(plots_convergence...,
-                         layout=4,
-                         title=reshape(["Node $i" for i in 1:length(plots_convergence)], (1, length(plots_convergence))),
-                         titlefontsize=8,
-                        )
-display(fig_convergence)
+# fig_convergence = plt.plot(plots_convergence...,
+#                          layout=4,
+#                          title=reshape(["Node $i" for i in 1:length(plots_convergence)], (1, length(plots_convergence))),
+#                          titlefontsize=8,
+#                         )
+# display(fig_convergence)

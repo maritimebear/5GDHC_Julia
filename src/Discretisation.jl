@@ -4,7 +4,7 @@ export DiscretisationScheme, FVM
 
 export upwind, linear, linear_upwind
 export create_TVD_scheme
-export vanLeer
+export vanLeer, vanAlbada, minmod, lu_TVD
 
 
 abstract type DiscretisationScheme
