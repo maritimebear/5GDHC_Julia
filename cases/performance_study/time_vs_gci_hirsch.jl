@@ -57,6 +57,8 @@ for (name, scheme) in convection_schemes
                                                      p_ref,                 # pressures to p_ref
                                                      T_ambient              # temperatures to T_ambient
                                                     )
+        println("Number of dynamical states: $(length(initial_guess))")
+
 
         println("\nConvection scheme: $name, dx = $dx")
         if max_CFL !== nothing

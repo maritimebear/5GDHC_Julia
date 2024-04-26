@@ -89,6 +89,8 @@ for n_prosumer in n_prosumers
                                                  p_ref,                               # pressures to p_ref
                                                  T_ambient                            # temperatures to T_ambient
                                                 )
+    println("Number of dynamical states: $(length(initial_guess))")
+
     println("\nConvection scheme: $scheme_name, dx = $dx")
 
     if max_CFL !== nothing
