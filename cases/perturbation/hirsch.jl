@@ -43,9 +43,9 @@ solver_steady = SciMLNLSolve.NLSolveJL
 solver_dynamic = de.Rodas5
 
 ## Spatial discretisation
-initial_dx = 10.0 # [m]
+initial_dx = 20.0 # [m]
 refinement_ratio = 2
-n_refinement_levels = 2
+n_refinement_levels = 5
 
 ## Temporal discretisation
 time_interval = (0.0, 1 * 60 * 60.0) # [s]
